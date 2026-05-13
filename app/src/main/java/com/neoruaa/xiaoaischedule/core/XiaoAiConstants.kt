@@ -15,6 +15,8 @@ object XiaoAiConstants {
 
     const val CourseInfoUrl = "$Host/course/courseInfoDay"
     const val CourseSettingUrl = "$Host/course/setting"
+    const val CourseMultiAuthTablesUrl = "$Host/course-multi-auth/tables"
+    const val CourseMultiAuthTableUrl = "$Host/course-multi-auth/table"
     const val LogoutScheduleUrl = "$Host/course-multi-auth/logout"
 
     const val XiaomiAccountUrl = "https://account.xiaomi.com"

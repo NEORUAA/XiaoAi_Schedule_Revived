@@ -7,6 +7,7 @@ import com.neoruaa.xiaoaischedule.BuildConfig
 import com.neoruaa.xiaoaischedule.account.AccountRepository
 import com.neoruaa.xiaoaischedule.core.XiaoAiConstants
 import com.neoruaa.xiaoaischedule.data.PrivacyStore
+import com.neoruaa.xiaoaischedule.widget.CourseWidgetProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -61,6 +62,7 @@ class XiaoAiBridge(
             )
             "logout" -> {
                 accountRepository.logout()
+                CourseWidgetProvider.requestRefresh(context)
                 if (params.callback.isNotBlank()) {
                     postResult(params.callback, nested("logout", params.id) { put("is_login", 0) })
                 }
@@ -94,6 +96,12 @@ class XiaoAiBridge(
                 }
             }
             "importJWCFinish" -> host.onImportJwcFinish()
+            "createWidget", "sendBroadcast", "sendLocalBroadcast" -> {
+                CourseWidgetProvider.requestRefresh(context)
+                if (params.callback.isNotBlank()) {
+                    postResult(params.callback, nested(action, params.id) { put("status", true) })
+                }
+            }
         }
     }
 

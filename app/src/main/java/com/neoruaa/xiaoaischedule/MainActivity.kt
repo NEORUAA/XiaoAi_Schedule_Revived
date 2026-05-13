@@ -45,6 +45,7 @@ import com.neoruaa.xiaoaischedule.web.WebContainerActivity
 import com.neoruaa.xiaoaischedule.web.WebFileChooserDelegate
 import com.neoruaa.xiaoaischedule.web.XiaoAiBridge
 import com.neoruaa.xiaoaischedule.web.XiaoAiWebView
+import com.neoruaa.xiaoaischedule.widget.CourseWidgetProvider
 import java.util.EnumMap
 
 class MainActivity : ComponentActivity(), BridgeHost {
@@ -103,6 +104,7 @@ class MainActivity : ComponentActivity(), BridgeHost {
     override fun onImportJwcFinish() {
         selectedTab = MainTab.Schedule
         webViews[MainTab.Schedule]?.loadUrl("${XiaoAiConstants.ScheduleUrl}?time=${System.currentTimeMillis()}")
+        CourseWidgetProvider.requestRefresh(this)
     }
 
     @Composable
@@ -168,6 +170,7 @@ class MainActivity : ComponentActivity(), BridgeHost {
                             request.callback,
                             XiaoAiBridge.loginPayload(request.id, success),
                         )
+                        if (success) CourseWidgetProvider.requestRefresh(this@MainActivity)
                         loginRequest = null
                     },
                 )
