@@ -2,26 +2,99 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:tools="http://schemas.android.com/tools">
 
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+
     <application
-            android:allowBackup="true"
+            android:allowBackup="false"
             android:dataExtractionRules="@xml/data_extraction_rules"
             android:fullBackupContent="@xml/backup_rules"
             android:icon="@mipmap/ic_launcher"
             android:label="@string/app_name"
+            android:largeHeap="true"
             android:roundIcon="@mipmap/ic_launcher_round"
             android:supportsRtl="true"
+            android:usesCleartextTraffic="true"
             android:theme="@style/Theme.Xiaoaischedule">
         <activity
                 android:name=".MainActivity"
                 android:exported="true"
                 android:label="@string/app_name"
+                android:launchMode="singleTop"
+                android:screenOrientation="portrait"
                 android:theme="@style/Theme.Xiaoaischedule">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                        android:host="main"
+                        android:scheme="aischedule" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="aischedule" />
+                <data android:scheme="xiaoailite" />
+            </intent-filter>
         </activity>
+
+        <activity
+                android:name=".web.WebContainerActivity"
+                android:exported="false"
+                android:screenOrientation="portrait"
+                android:theme="@style/Theme.Xiaoaischedule" />
+        <activity
+                android:name=".web.ScheduleEducationalImportActivity"
+                android:exported="false"
+                android:screenOrientation="portrait"
+                android:theme="@style/Theme.Xiaoaischedule"
+                android:windowSoftInputMode="adjustPan" />
+        <activity
+                android:name=".web.PrivacyRevokeActivity"
+                android:exported="false"
+                android:screenOrientation="portrait"
+                android:theme="@style/Theme.Xiaoaischedule" />
+        <activity
+                android:name=".delete.DeleteServiceActivity"
+                android:exported="false"
+                android:screenOrientation="portrait"
+                android:theme="@style/Theme.Xiaoaischedule" />
+
+        <provider
+                android:name="androidx.core.content.FileProvider"
+                android:authorities="${applicationId}.fileprovider"
+                android:exported="false"
+                android:grantUriPermissions="true">
+            <meta-data
+                    android:name="android.support.FILE_PROVIDER_PATHS"
+                    android:resource="@xml/app_file_paths" />
+        </provider>
+
+        <receiver
+                android:name=".widget.CourseWidgetProvider"
+                android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.neoruaa.xiaoaischedule.action.REFRESH_WIDGET" />
+            </intent-filter>
+            <meta-data
+                    android:name="android.appwidget.provider"
+                    android:resource="@xml/course_widget_info" />
+        </receiver>
     </application>
 
 </manifest>

@@ -7,4 +7,9 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="main_tab_background_color">#FFF8FBFD</color>
+    <color name="xiaomi_blue">#FF0099FF</color>
+    <color name="text_primary">#E6000000</color>
+    <color name="text_secondary">#99000000</color>
+    <color name="divider">#1A000000</color>
 </resources>

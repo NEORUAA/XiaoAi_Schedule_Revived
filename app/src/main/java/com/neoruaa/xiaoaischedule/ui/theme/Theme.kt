@@ -12,15 +12,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primary = Blue80,
+    secondary = Grey80,
+    tertiary = Green80
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
+    primary = Blue40,
+    secondary = Grey40,
+    tertiary = Green40,
+    background = androidx.compose.ui.graphics.Color.White,
+    surface = androidx.compose.ui.graphics.Color.White,
+    onSurface = androidx.compose.ui.graphics.Color(0xE6000000),
+    onBackground = androidx.compose.ui.graphics.Color(0xE6000000),
 
     /* Other default colors to override
     background = Color(0xFFFFFBFE),
@@ -37,7 +41,7 @@ private val LightColorScheme = lightColorScheme(
 fun XiaoaischeduleTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
