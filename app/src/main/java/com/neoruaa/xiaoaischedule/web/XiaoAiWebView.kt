@@ -7,6 +7,7 @@ import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
 import android.view.View
+import android.view.ViewGroup
 import android.webkit.JsResult
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
@@ -37,11 +38,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.zIndex
 import com.neoruaa.xiaoaischedule.R
 import com.neoruaa.xiaoaischedule.account.AccountRepository
 import com.neoruaa.xiaoaischedule.data.PrivacyStore
+import kotlin.coroutines.resume
 import kotlin.math.roundToInt
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.suspendCancellableCoroutine
 import org.json.JSONObject
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.Text
@@ -73,6 +77,10 @@ fun XiaoAiWebView(
 
     val webView = remember(url) {
         WebView(context).apply {
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT,
+            )
             overScrollMode = View.OVER_SCROLL_NEVER
             setBackgroundColor(android.graphics.Color.TRANSPARENT)
             settings.configure()
@@ -111,7 +119,6 @@ fun XiaoAiWebView(
                 super.onPageFinished(view, url)
                 view.injectXiaoAiCss(xiaoAiCss)
                 view.injectXiaoAiSafeArea(context.statusBarCssPx())
-                view.injectXiaoAiViewportPatch()
             }
 
             override fun onReceivedError(
@@ -165,25 +172,39 @@ fun XiaoAiWebView(
                 return true
             }
         }
+        val viewportLayoutListener = View.OnLayoutChangeListener { view, left, top, right, bottom, _, _, _, _ ->
+            view.applyExactViewportLayoutParams(right - left, bottom - top)
+        }
+        webView.addOnLayoutChangeListener(viewportLayoutListener)
         val observer = WebViewLifecycleObserver(webView)
         activity?.lifecycle?.addObserver(observer)
         onDispose {
+            webView.removeOnLayoutChangeListener(viewportLayoutListener)
             activity?.lifecycle?.removeObserver(observer)
         }
     }
 
     LaunchedEffect(visible, url) {
         if (visible && !loaded) {
+            webView.awaitNonZeroViewport()
             loaded = true
             webView.loadUrl(url)
         }
     }
 
-    Box(modifier = modifier) {
+    Box(modifier = modifier.zIndex(if (visible) 1f else 0f)) {
         AndroidView(
             factory = { webView },
             update = {
-                it.visibility = if (visible) View.VISIBLE else View.GONE
+                val nextVisibility = if (visible) View.VISIBLE else View.INVISIBLE
+                if (it.visibility != nextVisibility) {
+                    it.visibility = nextVisibility
+                    it.requestLayout()
+                }
+                it.isEnabled = visible
+                it.isClickable = visible
+                it.isFocusable = visible
+                it.isFocusableInTouchMode = visible
                 onWebViewReady(it)
             },
             modifier = Modifier.fillMaxSize(),
@@ -220,10 +241,6 @@ private fun WebView.injectXiaoAiCss(css: String) {
     )
 }
 
-private fun WebView.injectXiaoAiViewportPatch() {
-    evaluateJavascript(XiaoAiViewportPatch, null)
-}
-
 private fun WebView.injectXiaoAiSafeArea(statusBarHeight: Int) {
     evaluateJavascript(
         XiaoAiSafeAreaPatch.replace("__STATUS_BAR_HEIGHT__", statusBarHeight.toString()),
@@ -235,6 +252,68 @@ private fun Context.statusBarCssPx(): Int {
     val resourceId = resources.getIdentifier("status_bar_height", "dimen", "android")
     val statusBarPx = if (resourceId > 0) resources.getDimensionPixelSize(resourceId) else 0
     return (statusBarPx / resources.displayMetrics.density).roundToInt().coerceAtLeast(0)
+}
+
+private suspend fun WebView.awaitNonZeroViewport() {
+    if (hasNonZeroViewport()) return
+    suspendCancellableCoroutine { continuation ->
+        var completed = false
+        lateinit var layoutListener: View.OnLayoutChangeListener
+        lateinit var attachListener: View.OnAttachStateChangeListener
+
+        fun cleanup() {
+            removeOnLayoutChangeListener(layoutListener)
+            removeOnAttachStateChangeListener(attachListener)
+        }
+
+        fun completeIfReady() {
+            if (!completed && hasNonZeroViewport() && continuation.isActive) {
+                completed = true
+                applyExactViewportLayoutParams(width, height)
+                cleanup()
+                continuation.resume(Unit)
+            }
+        }
+
+        layoutListener = View.OnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+            completeIfReady()
+        }
+        attachListener = object : View.OnAttachStateChangeListener {
+            override fun onViewAttachedToWindow(view: View) {
+                completeIfReady()
+            }
+
+            override fun onViewDetachedFromWindow(view: View) = Unit
+        }
+
+        addOnLayoutChangeListener(layoutListener)
+        addOnAttachStateChangeListener(attachListener)
+        post { completeIfReady() }
+        continuation.invokeOnCancellation {
+            if (!completed) {
+                completed = true
+                cleanup()
+            }
+        }
+    }
+}
+
+private fun WebView.hasNonZeroViewport(): Boolean {
+    return isAttachedToWindow && width > 0 && height > 0
+}
+
+private fun View.applyExactViewportLayoutParams(width: Int, height: Int) {
+    if (width <= 0 || height <= 0) return
+    val current = layoutParams
+    if (current == null) {
+        layoutParams = ViewGroup.LayoutParams(width, height)
+        return
+    }
+    if (current.width != width || current.height != height) {
+        current.width = width
+        current.height = height
+        layoutParams = current
+    }
 }
 
 private const val XiaoAiCssAsset = "xiaoai.css"
@@ -316,99 +395,6 @@ private val XiaoAiSafeAreaPatch = """
         window.__xiaoAiSafeAreaPatchRun(statusBarHeight);
       });
       window.__xiaoAiSafeAreaPatchRun(statusBarHeight);
-    })();
-""".trimIndent()
-
-private val XiaoAiViewportPatch = """
-    (function() {
-      if (window.__xiaoAiViewportPatchInstalled) {
-        if (window.__xiaoAiViewportPatchRun) {
-          window.__xiaoAiViewportPatchRun();
-        }
-        return;
-      }
-      window.__xiaoAiViewportPatchInstalled = true;
-
-      function ensureStyle() {
-        var id = 'xiaoai-viewport-patch-style';
-        if (document.getElementById(id)) {
-          return;
-        }
-        var style = document.createElement('style');
-        style.id = id;
-        style.textContent = '#root>[class^="page___"],#root>[class*=" page___"]{height:100%!important;}';
-        (document.head || document.documentElement).appendChild(style);
-      }
-
-      function pageNodes(root) {
-        try {
-          return root.querySelectorAll(':scope > [class^="page___"], :scope > [class*=" page___"]');
-        } catch (error) {
-          return document.querySelectorAll('#root > [class^="page___"], #root > [class*=" page___"]');
-        }
-      }
-
-      function setImportantStyle(node, name, value) {
-        if (
-          node.style.getPropertyValue(name) !== value ||
-          node.style.getPropertyPriority(name) !== 'important'
-        ) {
-          node.style.setProperty(name, value, 'important');
-        }
-      }
-
-      function patch() {
-        ensureStyle();
-        var root = document.getElementById('root');
-        if (!root) {
-          return;
-        }
-
-        var pages = pageNodes(root);
-        for (var i = 0; i < pages.length; i += 1) {
-          setImportantStyle(pages[i], 'height', '100%');
-        }
-      }
-
-      var pending = false;
-      function schedulePatch() {
-        if (pending) {
-          return;
-        }
-        pending = true;
-        setTimeout(function() {
-          pending = false;
-          patch();
-          setTimeout(patch, 50);
-          setTimeout(patch, 250);
-        }, 0);
-      }
-
-      window.__xiaoAiViewportPatchRun = schedulePatch;
-
-      var observer = new MutationObserver(schedulePatch);
-      observer.observe(document.documentElement, {
-        childList: true,
-        subtree: true,
-        attributes: true,
-        attributeFilter: ['class', 'style']
-      });
-
-      ['pushState', 'replaceState'].forEach(function(name) {
-        var original = history[name];
-        if (typeof original !== 'function') {
-          return;
-        }
-        history[name] = function() {
-          var result = original.apply(this, arguments);
-          schedulePatch();
-          return result;
-        };
-      });
-
-      window.addEventListener('hashchange', schedulePatch);
-      window.addEventListener('popstate', schedulePatch);
-      schedulePatch();
     })();
 """.trimIndent()
 
