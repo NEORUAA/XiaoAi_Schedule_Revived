@@ -1,0 +1,46 @@
+[data-theme=light] {
+    --background-color: #f7f7f7;
+}
+
+[class^="content___"]>[class^="wrap___"] {
+    background: white;
+    margin: 0 10px;
+    padding: 2px 18px;
+}
+
+[class^="content___"]>[class^="line___"] {
+    display: none;
+}
+
+[class^="content___"]>[class^="tag___"] {
+    background: #f7f7f7;
+    margin: -16px 10px;
+    padding: 24px 16px 16px;
+    height: auto;
+    --r: 16px;
+    -webkit-mask-image: radial-gradient(circle at var(--r) 0, transparent var(--r), #000 calc(var(--r) + 0.5px)), radial-gradient(circle at 0 0, transparent var(--r), #000 calc(var(--r) + 0.5px)), radial-gradient(circle at var(--r) var(--r), transparent var(--r), #000 calc(var(--r) + 0.5px)), radial-gradient(circle at 0 var(--r), transparent var(--r), #000 calc(var(--r) + 0.5px)), linear-gradient(#000, #000);
+    -webkit-mask-size: var(--r) var(--r), var(--r) var(--r), var(--r) var(--r), var(--r) var(--r), 100% calc(100% - 2 * var(--r));
+    -webkit-mask-position: top left, top right, bottom left, bottom right, center;
+    -webkit-mask-repeat: no-repeat;
+    mask-image: radial-gradient(circle at var(--r) 0, transparent var(--r), #000 calc(var(--r) + 0.5px)), radial-gradient(circle at 0 0, transparent var(--r), #000 calc(var(--r) + 0.5px)), radial-gradient(circle at var(--r) var(--r), transparent var(--r), #000 calc(var(--r) + 0.5px)), radial-gradient(circle at 0 var(--r), transparent var(--r), #000 calc(var(--r) + 0.5px)), linear-gradient(#000, #000);
+    mask-size: var(--r) var(--r), var(--r) var(--r), var(--r) var(--r), var(--r) var(--r), 100% calc(100% - 2 * var(--r));
+    mask-position: top left, top right, bottom left, bottom right, center;
+    mask-repeat: no-repeat;
+}
+
+[class^="switch___"]>[class^="point___"] {
+    box-shadow: 0 0 0px 4px white;
+}
+
+#modals div[aria-label="弹窗"] {
+    border-radius: 30px;
+    margin: 10px;
+
+    >[class^="footer___"] {
+        padding: 10px 21px 21px;
+    }
+
+    div[role="button"]>div {
+        border-radius: 16px;
+    }
+}

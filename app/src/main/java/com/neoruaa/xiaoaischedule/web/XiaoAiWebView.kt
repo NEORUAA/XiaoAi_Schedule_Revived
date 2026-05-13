@@ -40,6 +40,7 @@ import com.neoruaa.xiaoaischedule.R
 import com.neoruaa.xiaoaischedule.account.AccountRepository
 import com.neoruaa.xiaoaischedule.data.PrivacyStore
 import kotlinx.coroutines.CoroutineScope
+import org.json.JSONObject
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -62,6 +63,11 @@ fun XiaoAiWebView(
     val context = LocalContext.current
     var hasError by remember { mutableStateOf(false) }
     var loaded by rememberSaveable(url) { mutableStateOf(false) }
+    val xiaoAiCss = remember(context) {
+        runCatching {
+            context.assets.open(XiaoAiCssAsset).bufferedReader().use { it.readText() }
+        }.getOrDefault("")
+    }
 
     val webView = remember(url) {
         WebView(context).apply {
@@ -101,6 +107,7 @@ fun XiaoAiWebView(
 
             override fun onPageFinished(view: WebView, url: String?) {
                 super.onPageFinished(view, url)
+                view.injectXiaoAiCss(xiaoAiCss)
                 view.injectXiaoAiViewportPatch()
             }
 
@@ -190,9 +197,31 @@ fun XiaoAiWebView(
     }
 }
 
+private fun WebView.injectXiaoAiCss(css: String) {
+    if (css.isBlank()) return
+    val quotedCss = JSONObject.quote(css)
+    evaluateJavascript(
+        """
+            (function() {
+              var id = 'xiaoai-assets-style';
+              var style = document.getElementById(id);
+              if (!style) {
+                style = document.createElement('style');
+                style.id = id;
+                (document.head || document.documentElement).appendChild(style);
+              }
+              style.textContent = $quotedCss;
+            })();
+        """.trimIndent(),
+        null,
+    )
+}
+
 private fun WebView.injectXiaoAiViewportPatch() {
     evaluateJavascript(XiaoAiViewportPatch, null)
 }
+
+private const val XiaoAiCssAsset = "xiaoai.css"
 
 private val XiaoAiViewportPatch = """
     (function() {
