@@ -67,7 +67,7 @@ class MainActivity : ComponentActivity(), BridgeHost {
             this,
             object : OnBackPressedCallback(true) {
                 override fun handleOnBackPressed() {
-                    moveTaskToBack(false)
+                    handleMainBackPressed()
                 }
             },
         )
@@ -103,6 +103,15 @@ class MainActivity : ComponentActivity(), BridgeHost {
         selectedTab = MainTab.Schedule
         webViews[MainTab.Schedule]?.loadUrl("${XiaoAiConstants.ScheduleUrl}?time=${System.currentTimeMillis()}")
         CourseWidgetProvider.requestRefresh(this)
+    }
+
+    private fun handleMainBackPressed() {
+        val currentWebView = webViews[selectedTab]
+        if (currentWebView?.canGoBack() == true) {
+            currentWebView.goBack()
+            return
+        }
+        moveTaskToBack(false)
     }
 
     @Composable

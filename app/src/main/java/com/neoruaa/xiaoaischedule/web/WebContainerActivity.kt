@@ -4,6 +4,8 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.webkit.WebView
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
@@ -27,6 +29,7 @@ class WebContainerActivity : ComponentActivity(), BridgeHost {
     private lateinit var routeHandler: NativeRouteHandler
     private lateinit var fileChooserDelegate: WebFileChooserDelegate
     private var loginRequest by mutableStateOf<BridgeLoginRequest?>(null)
+    private var webView: WebView? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -34,6 +37,15 @@ class WebContainerActivity : ComponentActivity(), BridgeHost {
         accountRepository = AccountRepository(this, privacyStore)
         routeHandler = NativeRouteHandler()
         fileChooserDelegate = WebFileChooserDelegate(this)
+
+        onBackPressedDispatcher.addCallback(
+            this,
+            object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    handleWebBackPressed()
+                }
+            },
+        )
 
         setContent {
             XiaoaischeduleTheme {
@@ -62,6 +74,15 @@ class WebContainerActivity : ComponentActivity(), BridgeHost {
         finish()
     }
 
+    private fun handleWebBackPressed() {
+        val currentWebView = webView
+        if (currentWebView?.canGoBack() == true) {
+            currentWebView.goBack()
+            return
+        }
+        finish()
+    }
+
     @Composable
     private fun WebContainerContent(url: String, title: String) {
         val scope = rememberCoroutineScope()
@@ -80,6 +101,7 @@ class WebContainerActivity : ComponentActivity(), BridgeHost {
                     host = this@WebContainerActivity,
                     scope = scope,
                     modifier = Modifier.fillMaxSize().padding(paddingValues),
+                    onWebViewReady = { webView = it },
                 )
             }
             loginRequest?.let { request ->

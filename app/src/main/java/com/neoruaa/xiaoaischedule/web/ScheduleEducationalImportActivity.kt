@@ -6,6 +6,7 @@ import android.content.Intent
 import android.graphics.Color.parseColor
 import android.os.Bundle
 import android.webkit.WebView
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -52,6 +53,15 @@ class ScheduleEducationalImportActivity : ComponentActivity(), BridgeHost {
         fileChooserDelegate = WebFileChooserDelegate(this)
         val params = parseParams(intent.getStringExtra(ExtraParams).orEmpty())
 
+        onBackPressedDispatcher.addCallback(
+            this,
+            object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    handleWebBackPressed()
+                }
+            },
+        )
+
         setContent {
             XiaoaischeduleTheme {
                 ImportContent(params)
@@ -73,6 +83,15 @@ class ScheduleEducationalImportActivity : ComponentActivity(), BridgeHost {
 
     override fun onImportJwcFinish() {
         AppEvents.importFinished.tryEmit(Unit)
+        finish()
+    }
+
+    private fun handleWebBackPressed() {
+        val currentWebView = webView
+        if (currentWebView?.canGoBack() == true) {
+            currentWebView.goBack()
+            return
+        }
         finish()
     }
 

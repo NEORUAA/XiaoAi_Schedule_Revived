@@ -4,6 +4,8 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.webkit.WebView
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
@@ -45,6 +47,7 @@ class PrivacyRevokeActivity : ComponentActivity(), BridgeHost {
     private lateinit var fileChooserDelegate: WebFileChooserDelegate
     private var loginRequest by mutableStateOf<BridgeLoginRequest?>(null)
     private var showConfirm by mutableStateOf(false)
+    private var webView: WebView? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,6 +55,14 @@ class PrivacyRevokeActivity : ComponentActivity(), BridgeHost {
         accountRepository = AccountRepository(this, privacyStore)
         routeHandler = NativeRouteHandler()
         fileChooserDelegate = WebFileChooserDelegate(this)
+        onBackPressedDispatcher.addCallback(
+            this,
+            object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    handleWebBackPressed()
+                }
+            },
+        )
         setContent {
             XiaoaischeduleTheme {
                 PrivacyRevokeContent(intent.getStringExtra(ExtraUrl).orEmpty())
@@ -72,6 +83,15 @@ class PrivacyRevokeActivity : ComponentActivity(), BridgeHost {
     }
 
     override fun onImportJwcFinish() {
+        finish()
+    }
+
+    private fun handleWebBackPressed() {
+        val currentWebView = webView
+        if (currentWebView?.canGoBack() == true) {
+            currentWebView.goBack()
+            return
+        }
         finish()
     }
 
@@ -106,6 +126,7 @@ class PrivacyRevokeActivity : ComponentActivity(), BridgeHost {
                         scope = scope,
                         openHttpExternally = true,
                         modifier = Modifier.weight(1f),
+                        onWebViewReady = { webView = it },
                     )
                 }
             }
