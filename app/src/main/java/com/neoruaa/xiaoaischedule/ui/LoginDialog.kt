@@ -191,7 +191,7 @@ fun LoginDialog(
                         onClick = onDismiss,
                         enabled = !loading,
                     )
-                    Spacer(Modifier.width(8.dp))
+                    Spacer(Modifier.width(4.dp))
                     TextButton(
                         modifier = Modifier.weight(1f),
                         text = when {

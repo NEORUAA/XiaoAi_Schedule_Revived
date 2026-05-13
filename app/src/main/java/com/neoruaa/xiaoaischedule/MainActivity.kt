@@ -21,6 +21,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.core.view.WindowCompat
 import com.neoruaa.xiaoaischedule.account.AccountRepository
 import com.neoruaa.xiaoaischedule.core.AppEvents
 import com.neoruaa.xiaoaischedule.core.XiaoAiConstants
@@ -123,6 +124,9 @@ class MainActivity : ComponentActivity(), BridgeHost {
             AppEvents.importFinished.collect {
                 onImportJwcFinish()
             }
+        }
+        LaunchedEffect(selectedTab) {
+            WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = selectedTab != MainTab.Today
         }
 
         Box(modifier = Modifier.fillMaxSize()) {

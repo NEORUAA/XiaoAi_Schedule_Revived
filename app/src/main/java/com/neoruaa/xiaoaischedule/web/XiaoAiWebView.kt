@@ -1,6 +1,7 @@
 package com.neoruaa.xiaoaischedule.web
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
@@ -39,6 +40,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.neoruaa.xiaoaischedule.R
 import com.neoruaa.xiaoaischedule.account.AccountRepository
 import com.neoruaa.xiaoaischedule.data.PrivacyStore
+import kotlin.math.roundToInt
 import kotlinx.coroutines.CoroutineScope
 import org.json.JSONObject
 import top.yukonga.miuix.kmp.basic.Button
@@ -108,6 +110,7 @@ fun XiaoAiWebView(
             override fun onPageFinished(view: WebView, url: String?) {
                 super.onPageFinished(view, url)
                 view.injectXiaoAiCss(xiaoAiCss)
+                view.injectXiaoAiSafeArea(context.statusBarCssPx())
                 view.injectXiaoAiViewportPatch()
             }
 
@@ -221,7 +224,100 @@ private fun WebView.injectXiaoAiViewportPatch() {
     evaluateJavascript(XiaoAiViewportPatch, null)
 }
 
+private fun WebView.injectXiaoAiSafeArea(statusBarHeight: Int) {
+    evaluateJavascript(
+        XiaoAiSafeAreaPatch.replace("__STATUS_BAR_HEIGHT__", statusBarHeight.toString()),
+        null,
+    )
+}
+
+private fun Context.statusBarCssPx(): Int {
+    val resourceId = resources.getIdentifier("status_bar_height", "dimen", "android")
+    val statusBarPx = if (resourceId > 0) resources.getDimensionPixelSize(resourceId) else 0
+    return (statusBarPx / resources.displayMetrics.density).roundToInt().coerceAtLeast(0)
+}
+
 private const val XiaoAiCssAsset = "xiaoai.css"
+
+private val XiaoAiSafeAreaPatch = """
+    (function() {
+      var statusBarHeight = __STATUS_BAR_HEIGHT__;
+      if (window.__xiaoAiSafeAreaPatchInstalled) {
+        if (window.__xiaoAiSafeAreaPatchRun) {
+          window.__xiaoAiSafeAreaPatchRun(statusBarHeight);
+        }
+        return;
+      }
+      window.__xiaoAiSafeAreaPatchInstalled = true;
+
+      function setImportantStyle(node, name, value) {
+        if (!node) {
+          return;
+        }
+        if (
+          node.style.getPropertyValue(name) !== value ||
+          node.style.getPropertyPriority(name) !== 'important'
+        ) {
+          node.style.setProperty(name, value, 'important');
+        }
+      }
+
+      function installBridgeInsets(height) {
+        window.__xiaoAiStatusBarHeight = height;
+        if (window.jsBridge && !window.jsBridge.getStatusBarHeight) {
+          window.jsBridge.getStatusBarHeight = function() {
+            return Promise.resolve(height);
+          };
+        }
+      }
+
+      function patchTodayPage(height) {
+        var root = document.getElementById('root');
+        if (!root || !/(^|\/)today_?lesson(?:[/?#]|${'$'})/.test(window.location.hash || '')) {
+          return;
+        }
+        var headers = root.querySelectorAll('[class^="header___"], [class*=" header___"]');
+        for (var i = 0; i < headers.length; i += 1) {
+          setImportantStyle(headers[i], 'padding-top', height + 'px');
+        }
+      }
+
+      function patch(height) {
+        document.documentElement.style.setProperty('--xiaoai-status-bar-height', height + 'px');
+        installBridgeInsets(height);
+        patchTodayPage(height);
+      }
+
+      var pending = false;
+      window.__xiaoAiSafeAreaPatchRun = function(height) {
+        if (pending) {
+          return;
+        }
+        pending = true;
+        setTimeout(function() {
+          pending = false;
+          patch(height);
+          setTimeout(function() { patch(height); }, 50);
+          setTimeout(function() { patch(height); }, 250);
+        }, 0);
+      };
+
+      var observer = new MutationObserver(function() {
+        window.__xiaoAiSafeAreaPatchRun(statusBarHeight);
+      });
+      observer.observe(document.documentElement, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['class', 'style']
+      });
+
+      window.addEventListener('hashchange', function() {
+        window.__xiaoAiSafeAreaPatchRun(statusBarHeight);
+      });
+      window.__xiaoAiSafeAreaPatchRun(statusBarHeight);
+    })();
+""".trimIndent()
 
 private val XiaoAiViewportPatch = """
     (function() {
