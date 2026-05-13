@@ -8,12 +8,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -26,11 +20,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.unit.dp
 import com.neoruaa.xiaoaischedule.R
 import com.neoruaa.xiaoaischedule.account.AccountRepository
 import com.neoruaa.xiaoaischedule.web.BridgeLoginRequest
 import kotlinx.coroutines.launch
+import top.yukonga.miuix.kmp.basic.Button
+import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.basic.Checkbox
+import top.yukonga.miuix.kmp.basic.CheckboxDefaults
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TextButton
+import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.window.WindowDialog
 
 @Composable
 fun LoginDialog(
@@ -92,24 +96,27 @@ fun LoginDialog(
         }
     }
 
-    AlertDialog(
+    WindowDialog(
+        show = true,
         onDismissRequest = onDismiss,
-        title = { Text(text = stringResource(R.string.login)) },
-        text = {
+        title = stringResource(R.string.login),
+        content = {
             Column {
-                OutlinedTextField(
+                TextField(
                     value = account,
                     onValueChange = { account = it },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text(stringResource(R.string.account)) },
+                    label = stringResource(R.string.account),
+                    useLabelAsPlaceholder = true,
                     singleLine = true,
                     enabled = !loading && twoFactorOptions.isEmpty(),
                 )
-                OutlinedTextField(
+                TextField(
                     value = password,
                     onValueChange = { password = it },
                     modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-                    label = { Text(stringResource(R.string.password)) },
+                    label = stringResource(R.string.password),
+                    useLabelAsPlaceholder = true,
                     singleLine = true,
                     enabled = !loading && twoFactorOptions.isEmpty(),
                     visualTransformation = PasswordVisualTransformation(),
@@ -122,9 +129,10 @@ fun LoginDialog(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Checkbox(
-                            checked = savePassword,
-                            onCheckedChange = { savePassword = it },
+                            state = ToggleableState(savePassword),
+                            onClick = { savePassword = !savePassword },
                             enabled = !loading,
+                            colors = CheckboxDefaults.checkboxColors(),
                         )
                         Text(text = stringResource(R.string.save_password))
                     }
@@ -153,11 +161,12 @@ fun LoginDialog(
                 }
 
                 if (selectedFlag != null) {
-                    OutlinedTextField(
+                    TextField(
                         value = ticket,
                         onValueChange = { ticket = it },
                         modifier = Modifier.fillMaxWidth().padding(top = 14.dp),
-                        label = { Text(stringResource(R.string.verification_code)) },
+                        label = stringResource(R.string.verification_code),
+                        useLabelAsPlaceholder = true,
                         singleLine = true,
                         enabled = !loading,
                     )
@@ -167,33 +176,36 @@ fun LoginDialog(
                     Text(
                         text = it,
                         modifier = Modifier.padding(top = 12.dp),
-                        color = androidx.compose.ui.graphics.Color(0xFFD32F2F),
+                        color = MiuixTheme.colorScheme.error,
                     )
                 }
-            }
-        },
-        confirmButton = {
-            Button(
-                enabled = !loading && account.isNotBlank() && password.isNotBlank() && (selectedFlag == null || ticket.isNotBlank()),
-                onClick = {
-                    if (selectedFlag == null) submitLogin() else submitTicket()
-                },
-            ) {
-                Text(
-                    text = when {
-                        loading -> stringResource(R.string.logging_in)
-                        selectedFlag != null -> stringResource(R.string.submit)
-                        else -> stringResource(R.string.login)
-                    },
-                )
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss, enabled = !loading) {
-                Text(text = stringResource(R.string.cancel))
-            }
-            if (selectedFlag != null) {
-                Spacer(Modifier.width(6.dp))
+
+                Spacer(modifier = Modifier.height(24.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
+                ) {
+                    TextButton(
+                        modifier = Modifier.weight(1f),
+                        text = stringResource(R.string.cancel),
+                        onClick = onDismiss,
+                        enabled = !loading,
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    TextButton(
+                        modifier = Modifier.weight(1f),
+                        text = when {
+                            loading -> stringResource(R.string.logging_in)
+                            selectedFlag != null -> stringResource(R.string.submit)
+                            else -> stringResource(R.string.login)
+                        },
+                        enabled = !loading && account.isNotBlank() && password.isNotBlank() && (selectedFlag == null || ticket.isNotBlank()),
+                        onClick = {
+                            if (selectedFlag == null) submitLogin() else submitTicket()
+                        },
+                        colors = ButtonDefaults.textButtonColorsPrimary(),
+                    )
+                }
             }
         },
     )

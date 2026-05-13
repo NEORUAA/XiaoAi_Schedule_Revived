@@ -6,17 +6,11 @@ import android.webkit.WebView
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -24,13 +18,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.neoruaa.xiaoaischedule.account.AccountRepository
 import com.neoruaa.xiaoaischedule.core.AppEvents
 import com.neoruaa.xiaoaischedule.core.XiaoAiConstants
@@ -47,6 +37,14 @@ import com.neoruaa.xiaoaischedule.web.XiaoAiBridge
 import com.neoruaa.xiaoaischedule.web.XiaoAiWebView
 import com.neoruaa.xiaoaischedule.widget.CourseWidgetProvider
 import java.util.EnumMap
+import top.yukonga.miuix.kmp.basic.NavigationBar
+import top.yukonga.miuix.kmp.basic.NavigationBarItem
+import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.extended.Contacts
+import top.yukonga.miuix.kmp.icon.extended.Recent
+import top.yukonga.miuix.kmp.icon.extended.Weeks
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 class MainActivity : ComponentActivity(), BridgeHost {
     private lateinit var privacyStore: PrivacyStore
@@ -118,10 +116,20 @@ class MainActivity : ComponentActivity(), BridgeHost {
             }
         }
 
-        Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
+        Box(modifier = Modifier.fillMaxSize()) {
             if (privacyAgreed) {
-                Column(modifier = Modifier.fillMaxSize()) {
-                    Box(modifier = Modifier.weight(1f)) {
+                Scaffold(
+                    modifier = Modifier.fillMaxSize(),
+                    containerColor = MiuixTheme.colorScheme.surface,
+                    contentWindowInsets = WindowInsets(0.dp),
+                    bottomBar = {
+                        MainBottomBar(
+                            selectedTab = selectedTab,
+                            onSelected = { selectedTab = it },
+                        )
+                    },
+                ) { paddingValues ->
+                    Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
                         MainTab.entries.forEach { tab ->
                             XiaoAiWebView(
                                 url = tab.url,
@@ -137,10 +145,6 @@ class MainActivity : ComponentActivity(), BridgeHost {
                             )
                         }
                     }
-                    MainBottomBar(
-                        selectedTab = selectedTab,
-                        onSelected = { selectedTab = it },
-                    )
                 }
             }
 
@@ -182,10 +186,11 @@ class MainActivity : ComponentActivity(), BridgeHost {
 private enum class MainTab(
     val labelRes: Int,
     val url: String,
+    val icon: ImageVector,
 ) {
-    Today(R.string.main_tab_today, XiaoAiConstants.TodayLessonUrl),
-    Schedule(R.string.main_tab_schedule, XiaoAiConstants.ScheduleUrl),
-    Mine(R.string.main_tab_my, XiaoAiConstants.MineUrl),
+    Today(R.string.main_tab_today, XiaoAiConstants.TodayLessonUrl, MiuixIcons.Regular.Recent),
+    Schedule(R.string.main_tab_schedule, XiaoAiConstants.ScheduleUrl, MiuixIcons.Regular.Weeks),
+    Mine(R.string.main_tab_my, XiaoAiConstants.MineUrl, MiuixIcons.Regular.Contacts),
 }
 
 @Composable
@@ -193,24 +198,14 @@ private fun MainBottomBar(
     selectedTab: MainTab,
     onSelected: (MainTab) -> Unit,
 ) {
-    Column(modifier = Modifier.fillMaxWidth().background(Color.White)) {
-        HorizontalDivider(color = Color(0x1A000000), thickness = 0.5.dp)
-        Row(modifier = Modifier.fillMaxWidth().height(56.dp)) {
-            MainTab.entries.forEach { tab ->
-                val selected = selectedTab == tab
-                TextButton(
-                    onClick = { onSelected(tab) },
-                    modifier = Modifier.weight(1f).height(56.dp),
-                ) {
-                    Text(
-                        text = stringResource(tab.labelRes),
-                        color = if (selected) Color(0xFF0099FF) else Color(0x99000000),
-                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                        fontSize = 12.sp,
-                        modifier = Modifier.align(Alignment.CenterVertically),
-                    )
-                }
-            }
+    NavigationBar(color = MiuixTheme.colorScheme.surface) {
+        MainTab.entries.forEach { tab ->
+            NavigationBarItem(
+                selected = selectedTab == tab,
+                onClick = { onSelected(tab) },
+                icon = tab.icon,
+                label = stringResource(tab.labelRes),
+            )
         }
     }
 }

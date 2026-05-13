@@ -6,21 +6,19 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import com.neoruaa.xiaoaischedule.account.AccountRepository
 import com.neoruaa.xiaoaischedule.data.PrivacyStore
 import com.neoruaa.xiaoaischedule.ui.LoginDialog
-import com.neoruaa.xiaoaischedule.ui.SimpleTopBar
+import com.neoruaa.xiaoaischedule.ui.MiuixPageScaffold
 import com.neoruaa.xiaoaischedule.ui.theme.XiaoaischeduleTheme
 
 class WebContainerActivity : ComponentActivity(), BridgeHost {
@@ -67,9 +65,11 @@ class WebContainerActivity : ComponentActivity(), BridgeHost {
     @Composable
     private fun WebContainerContent(url: String, title: String) {
         val scope = rememberCoroutineScope()
-        Box(Modifier.fillMaxSize().background(Color.White)) {
-            Column(Modifier.fillMaxSize()) {
-                SimpleTopBar(title = title.ifBlank { "" }, onBack = { finish() })
+        Box(Modifier.fillMaxSize()) {
+            MiuixPageScaffold(
+                title = title.ifBlank { "" },
+                onBack = { finish() },
+            ) { paddingValues ->
                 XiaoAiWebView(
                     url = url,
                     visible = true,
@@ -79,7 +79,7 @@ class WebContainerActivity : ComponentActivity(), BridgeHost {
                     fileChooserDelegate = fileChooserDelegate,
                     host = this@WebContainerActivity,
                     scope = scope,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.fillMaxSize().padding(paddingValues),
                 )
             }
             loginRequest?.let { request ->

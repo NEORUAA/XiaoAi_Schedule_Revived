@@ -21,8 +21,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -42,6 +40,9 @@ import com.neoruaa.xiaoaischedule.R
 import com.neoruaa.xiaoaischedule.account.AccountRepository
 import com.neoruaa.xiaoaischedule.data.PrivacyStore
 import kotlinx.coroutines.CoroutineScope
+import top.yukonga.miuix.kmp.basic.Button
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
@@ -318,7 +319,10 @@ private fun WebErrorView(onRetry: () -> Unit) {
     ) {
         Text(text = stringResource(R.string.main_tab_no_network_retry), color = Color(0x99000000))
         Button(modifier = Modifier.padding(top = 14.dp), onClick = onRetry) {
-            Text(text = stringResource(R.string.main_tab_click_to_retry))
+            Text(
+                text = stringResource(R.string.main_tab_click_to_retry),
+                color = MiuixTheme.colorScheme.onPrimary,
+            )
         }
     }
 }

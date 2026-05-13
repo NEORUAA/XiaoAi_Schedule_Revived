@@ -14,8 +14,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -31,9 +29,12 @@ import com.neoruaa.xiaoaischedule.account.AccountRepository
 import com.neoruaa.xiaoaischedule.core.AppEvents
 import com.neoruaa.xiaoaischedule.data.PrivacyStore
 import com.neoruaa.xiaoaischedule.ui.LoginDialog
-import com.neoruaa.xiaoaischedule.ui.SimpleTopBar
+import com.neoruaa.xiaoaischedule.ui.MiuixPageScaffold
 import com.neoruaa.xiaoaischedule.ui.theme.XiaoaischeduleTheme
 import org.json.JSONObject
+import top.yukonga.miuix.kmp.basic.Button
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 class ScheduleEducationalImportActivity : ComponentActivity(), BridgeHost {
     private lateinit var privacyStore: PrivacyStore
@@ -78,9 +79,43 @@ class ScheduleEducationalImportActivity : ComponentActivity(), BridgeHost {
     @Composable
     private fun ImportContent(params: ImportParams) {
         val scope = rememberCoroutineScope()
-        Box(Modifier.fillMaxSize().background(Color.White)) {
-            Column(Modifier.fillMaxSize()) {
-                SimpleTopBar(title = stringResource(R.string.schedule_educational_import), onBack = { finish() })
+        Box(Modifier.fillMaxSize()) {
+            MiuixPageScaffold(
+                title = stringResource(R.string.schedule_educational_import),
+                onBack = { finish() },
+                bottomBar = {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(params.backgroundColor)
+                            .padding(horizontal = 20.dp, vertical = 14.dp),
+                    ) {
+                        Text(
+                            text = params.title,
+                            color = params.titleColor,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Text(
+                            text = params.text,
+                            color = params.textColor,
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
+                        Button(
+                            onClick = {
+                                params.script.takeIf { it.isNotBlank() }?.let {
+                                    webView?.evaluateJavascript("javascript:$it", null)
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                        ) {
+                            Text(
+                                text = params.buttonText.ifBlank { stringResource(R.string.ok) },
+                                color = MiuixTheme.colorScheme.onPrimary,
+                            )
+                        }
+                    }
+                },
+            ) { paddingValues ->
                 XiaoAiWebView(
                     url = params.url,
                     visible = true,
@@ -90,36 +125,9 @@ class ScheduleEducationalImportActivity : ComponentActivity(), BridgeHost {
                     fileChooserDelegate = fileChooserDelegate,
                     host = this@ScheduleEducationalImportActivity,
                     scope = scope,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.fillMaxSize().padding(paddingValues),
                     onWebViewReady = { webView = it },
                 )
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(params.backgroundColor)
-                        .padding(horizontal = 20.dp, vertical = 14.dp),
-                ) {
-                    Text(
-                        text = params.title,
-                        color = params.titleColor,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    Text(
-                        text = params.text,
-                        color = params.textColor,
-                        modifier = Modifier.padding(top = 4.dp),
-                    )
-                    Button(
-                        onClick = {
-                            params.script.takeIf { it.isNotBlank() }?.let {
-                                webView?.evaluateJavascript("javascript:$it", null)
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-                    ) {
-                        Text(text = params.buttonText.ifBlank { stringResource(R.string.ok) })
-                    }
-                }
             }
             loginRequest?.let { request ->
                 LoginDialog(

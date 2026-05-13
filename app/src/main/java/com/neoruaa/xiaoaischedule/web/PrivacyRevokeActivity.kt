@@ -6,23 +6,21 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import android.webkit.CookieManager
@@ -31,8 +29,14 @@ import com.neoruaa.xiaoaischedule.R
 import com.neoruaa.xiaoaischedule.account.AccountRepository
 import com.neoruaa.xiaoaischedule.data.PrivacyStore
 import com.neoruaa.xiaoaischedule.ui.LoginDialog
-import com.neoruaa.xiaoaischedule.ui.SimpleTopBar
+import com.neoruaa.xiaoaischedule.ui.MiuixPageScaffold
 import com.neoruaa.xiaoaischedule.ui.theme.XiaoaischeduleTheme
+import top.yukonga.miuix.kmp.basic.Button
+import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TextButton
+import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.window.WindowDialog
 
 class PrivacyRevokeActivity : ComponentActivity(), BridgeHost {
     private lateinit var privacyStore: PrivacyStore
@@ -74,49 +78,66 @@ class PrivacyRevokeActivity : ComponentActivity(), BridgeHost {
     @Composable
     private fun PrivacyRevokeContent(url: String) {
         val scope = rememberCoroutineScope()
-        Box(Modifier.fillMaxSize().background(Color.White)) {
-            Column(Modifier.fillMaxSize()) {
-                SimpleTopBar(title = stringResource(R.string.app_name), onBack = { finish() })
-                XiaoAiWebView(
-                    url = url,
-                    visible = true,
-                    accountRepository = accountRepository,
-                    privacyStore = privacyStore,
-                    routeHandler = routeHandler,
-                    fileChooserDelegate = fileChooserDelegate,
-                    host = this@PrivacyRevokeActivity,
-                    scope = scope,
-                    openHttpExternally = true,
-                    modifier = Modifier.weight(1f),
-                )
-                Button(
-                    onClick = { showConfirm = true },
-                    modifier = Modifier.fillMaxWidth().padding(20.dp),
-                ) {
-                    Text(text = stringResource(R.string.privacy_revoke))
+        Box(Modifier.fillMaxSize()) {
+            MiuixPageScaffold(
+                title = stringResource(R.string.app_name),
+                onBack = { finish() },
+                bottomBar = {
+                    Button(
+                        onClick = { showConfirm = true },
+                        modifier = Modifier.fillMaxWidth().padding(20.dp),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.privacy_revoke),
+                            color = MiuixTheme.colorScheme.onPrimary,
+                        )
+                    }
+                },
+            ) { paddingValues ->
+                Column(Modifier.fillMaxSize().padding(paddingValues)) {
+                    XiaoAiWebView(
+                        url = url,
+                        visible = true,
+                        accountRepository = accountRepository,
+                        privacyStore = privacyStore,
+                        routeHandler = routeHandler,
+                        fileChooserDelegate = fileChooserDelegate,
+                        host = this@PrivacyRevokeActivity,
+                        scope = scope,
+                        openHttpExternally = true,
+                        modifier = Modifier.weight(1f),
+                    )
                 }
             }
             if (showConfirm) {
-                AlertDialog(
+                WindowDialog(
+                    show = true,
                     onDismissRequest = { showConfirm = false },
-                    title = { Text(stringResource(R.string.privacy_revoke_dialog_title)) },
-                    text = { Text(stringResource(R.string.privacy_revoke_dialog_msg)) },
-                    confirmButton = {
-                        Button(
-                            onClick = {
-                                accountRepository.logout(clearSavedPassword = true)
-                                privacyStore.clearAllLocalData()
-                                CookieManager.getInstance().removeAllCookies(null)
-                                WebStorage.getInstance().deleteAllData()
-                                finishAffinity()
-                            },
-                        ) {
-                            Text(stringResource(R.string.ok))
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { showConfirm = false }) {
-                            Text(stringResource(R.string.cancel))
+                    title = stringResource(R.string.privacy_revoke_dialog_title),
+                    content = {
+                        Column {
+                            Text(stringResource(R.string.privacy_revoke_dialog_msg))
+                            Spacer(modifier = Modifier.height(24.dp))
+                            Row(modifier = Modifier.fillMaxWidth()) {
+                                TextButton(
+                                    modifier = Modifier.weight(1f),
+                                    text = stringResource(R.string.cancel),
+                                    onClick = { showConfirm = false },
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                TextButton(
+                                    modifier = Modifier.weight(1f),
+                                    text = stringResource(R.string.ok),
+                                    colors = ButtonDefaults.textButtonColorsPrimary(),
+                                    onClick = {
+                                        accountRepository.logout(clearSavedPassword = true)
+                                        privacyStore.clearAllLocalData()
+                                        CookieManager.getInstance().removeAllCookies(null)
+                                        WebStorage.getInstance().deleteAllData()
+                                        finishAffinity()
+                                    },
+                                )
+                            }
                         }
                     },
                 )
