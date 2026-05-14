@@ -6,6 +6,7 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
+import android.content.res.Configuration
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.JsResult
@@ -90,7 +91,7 @@ fun XiaoAiWebView(
             )
             overScrollMode = View.OVER_SCROLL_NEVER
             setBackgroundColor(android.graphics.Color.TRANSPARENT)
-            settings.configure()
+            settings.configure(context)
         }
     }
 
@@ -125,6 +126,7 @@ fun XiaoAiWebView(
 
             override fun onPageFinished(view: WebView, url: String?) {
                 super.onPageFinished(view, url)
+                view.injectXiaoAiTheme(context.isSystemNightMode())
                 view.injectXiaoAiCss(xiaoAiCss)
                 view.injectXiaoAiSafeArea(context.statusBarCssPx())
                 view.injectXiaoAiImportTools(importToolsJs)
@@ -245,6 +247,34 @@ private fun WebView.injectXiaoAiCss(css: String) {
                 (document.head || document.documentElement).appendChild(style);
               }
               style.textContent = $quotedCss;
+            })();
+        """.trimIndent(),
+        null,
+    )
+}
+
+private fun WebView.injectXiaoAiTheme(dark: Boolean) {
+    val theme = if (dark) "dark" else "light"
+    evaluateJavascript(
+        """
+            (function() {
+              var theme = ${JSONObject.quote(theme)};
+              function applyTheme() {
+                var root = document.documentElement;
+                if (!root) return;
+                if (root.getAttribute('data-theme') !== theme) {
+                  root.setAttribute('data-theme', theme);
+                }
+                root.style.colorScheme = theme;
+              }
+              applyTheme();
+              if (!window.__xiaoAiThemeObserver && document.documentElement) {
+                window.__xiaoAiThemeObserver = new MutationObserver(applyTheme);
+                window.__xiaoAiThemeObserver.observe(document.documentElement, {
+                  attributes: true,
+                  attributeFilter: ['data-theme', 'class', 'style']
+                });
+              }
             })();
         """.trimIndent(),
         null,
@@ -431,7 +461,7 @@ private val XiaoAiSafeAreaPatch = """
 """.trimIndent()
 
 @Suppress("DEPRECATION")
-private fun WebSettings.configure() {
+private fun WebSettings.configure(context: Context) {
     javaScriptEnabled = true
     domStorageEnabled = true
     databaseEnabled = true
@@ -445,9 +475,11 @@ private fun WebSettings.configure() {
     displayZoomControls = false
     mediaPlaybackRequiresUserGesture = false
     cacheMode = WebSettings.LOAD_DEFAULT
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-        mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
-    }
+    mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
+}
+
+private fun Context.isSystemNightMode(): Boolean {
+    return (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
 }
 
 @Composable

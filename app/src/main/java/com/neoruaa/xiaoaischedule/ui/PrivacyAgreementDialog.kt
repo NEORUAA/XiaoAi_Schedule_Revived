@@ -1,12 +1,12 @@
 package com.neoruaa.xiaoaischedule.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.state.ToggleableState
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.neoruaa.xiaoaischedule.R
 import com.neoruaa.xiaoaischedule.core.XiaoAiConstants
@@ -24,6 +25,7 @@ import top.yukonga.miuix.kmp.basic.Checkbox
 import top.yukonga.miuix.kmp.basic.CheckboxDefaults
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.window.WindowDialog
 
 @Composable
@@ -39,7 +41,10 @@ fun PrivacyAgreementDialog(
         title = stringResource(R.string.user_privacy_protection_title),
         content = {
             Column {
-                Text(text = stringResource(R.string.user_privacy_protection_msg))
+                Text(
+                    text = stringResource(R.string.user_privacy_protection_msg),
+                    color = MiuixTheme.colorScheme.onSurface,
+                )
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(top = 14.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -49,16 +54,26 @@ fun PrivacyAgreementDialog(
                         onClick = { checked = !checked },
                         colors = CheckboxDefaults.checkboxColors(),
                     )
-                    Text(text = stringResource(R.string.user_privacy_protection_tips_1))
-                }
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    TextButton(
-                        text = stringResource(R.string.user_agreement),
-                        onClick = { onOpenUrl(XiaoAiConstants.UserAgreementUrl) },
+                    Text(
+                        text = stringResource(R.string.user_privacy_protection_tips_1),
+                        color = MiuixTheme.colorScheme.onSurface,
                     )
-                    TextButton(
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp),
+                ) {
+                    Text(
+                        text = stringResource(R.string.user_agreement),
+                        modifier = Modifier.clickable { onOpenUrl(XiaoAiConstants.UserAgreementUrl) },
+                        color = MiuixTheme.colorScheme.primary,
+                        style = MiuixTheme.textStyles.body2.copy(textDecoration = TextDecoration.Underline),
+                    )
+                    Text(
                         text = stringResource(R.string.privacy_policy),
-                        onClick = { onOpenUrl(XiaoAiConstants.PrivacyUrl) },
+                        modifier = Modifier.clickable { onOpenUrl(XiaoAiConstants.PrivacyUrl) },
+                        color = MiuixTheme.colorScheme.primary,
+                        style = MiuixTheme.textStyles.body2.copy(textDecoration = TextDecoration.Underline),
                     )
                 }
                 Spacer(modifier = Modifier.height(24.dp))

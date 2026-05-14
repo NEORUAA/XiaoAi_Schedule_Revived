@@ -1,6 +1,8 @@
 package com.neoruaa.xiaoaischedule
 
+import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import android.os.Bundle
 import android.webkit.WebView
 import androidx.activity.ComponentActivity
@@ -44,6 +46,8 @@ import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Contacts
 import top.yukonga.miuix.kmp.icon.extended.Recent
+import top.yukonga.miuix.kmp.icon.extended.Timer
+import top.yukonga.miuix.kmp.icon.extended.VerticalSplit
 import top.yukonga.miuix.kmp.icon.extended.Weeks
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -126,7 +130,7 @@ class MainActivity : ComponentActivity(), BridgeHost {
             }
         }
         LaunchedEffect(selectedTab) {
-            WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = selectedTab != MainTab.Today
+            WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = ((selectedTab != MainTab.Today) && !isSystemNightMode())
         }
 
         Box(modifier = Modifier.fillMaxSize()) {
@@ -201,8 +205,8 @@ private enum class MainTab(
     val url: String,
     val icon: ImageVector,
 ) {
-    Today(R.string.main_tab_today, XiaoAiConstants.TodayLessonUrl, MiuixIcons.Regular.Recent),
-    Schedule(R.string.main_tab_schedule, XiaoAiConstants.ScheduleUrl, MiuixIcons.Regular.Weeks),
+    Today(R.string.main_tab_today, XiaoAiConstants.TodayLessonUrl, MiuixIcons.Regular.Timer),
+    Schedule(R.string.main_tab_schedule, XiaoAiConstants.ScheduleUrl, MiuixIcons.Regular.VerticalSplit),
     Mine(R.string.main_tab_my, XiaoAiConstants.MineUrl, MiuixIcons.Regular.Contacts),
 }
 
@@ -221,4 +225,8 @@ private fun MainBottomBar(
             )
         }
     }
+}
+
+private fun Context.isSystemNightMode(): Boolean {
+    return (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
 }

@@ -1,9 +1,22 @@
 [data-theme=light] {
     --background-color: #f7f7f7;
+    --os3-container-bg: white;
+    --os3-card-bg: white;
+}
+
+[data-theme=dark] {
+    --os3-container-bg: black;
+    --os3-card-bg: #252525;
+
+    [class^="arrow___"],
+    [class^="userName___"]
+    {
+        filter: invert(1);
+    }
 }
 
 [class^="content___"]>[class^="wrap___"] {
-    background: white;
+    background: var(--os3-card-bg);
     margin: 0 10px;
     padding: 2px 18px;
 }
@@ -13,7 +26,7 @@
 }
 
 [class^="content___"]>[class^="tag___"] {
-    background: #f7f7f7;
+    background: var(--background-color);
     margin: -16px 10px;
     padding: 24px 16px 16px;
     height: auto;
@@ -43,4 +56,36 @@
     div[role="button"]>div {
         border-radius: 16px;
     }
+}
+
+[class^="wrapper___"] [class^="page___"] [class^="content___"] {
+    background: linear-gradient(0deg, transparent, var(--os3-container-bg) 18vw);
+    min-height: unset;
+    margin-top: -20vw;
+}
+
+[style="overflow: hidden;"][class^="matchParent___"]>[class^="tran___"] {
+    background: var(--os3-container-bg);
+}
+
+[class^="bigTitle___"] {
+    font-weight: 350;
+}
+
+[class^="userInfoSession___"] {
+    margin-top: var(--xiaoai-status-bar-height);
+    margin-bottom: -24px;
+}
+
+.hasTop___2NdBY {
+    padding-top: var(--xiaoai-status-bar-height);
+}
+
+.hasTop___gO9wd {
+    margin-top: var(--xiaoai-status-bar-height);
+    height: calc(100vh - var(--xiaoai-status-bar-height)) !important;
+}
+
+.withBottomTab___1_Wjw {
+    bottom: 6.111111vw;
 }

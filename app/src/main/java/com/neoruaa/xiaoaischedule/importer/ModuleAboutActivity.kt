@@ -14,16 +14,22 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -32,10 +38,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.neoruaa.xiaoaischedule.BuildConfig
+import com.neoruaa.xiaoaischedule.R
 import com.neoruaa.xiaoaischedule.ui.MiuixBackButton
 import com.neoruaa.xiaoaischedule.ui.effect.BgEffectBackground
 import com.neoruaa.xiaoaischedule.ui.theme.XiaoaischeduleTheme
@@ -82,12 +93,15 @@ class ModuleAboutActivity : ComponentActivity() {
         var showSourceDialog by remember { mutableStateOf(false) }
         var showDebugDialog by remember { mutableStateOf(false) }
         val lazyListState = rememberLazyListState()
+        var logoSpacerHeightPx by remember { mutableIntStateOf(0) }
         val scrollProgress by remember {
             derivedStateOf {
-                if (lazyListState.firstVisibleItemIndex > 0) {
+                if (logoSpacerHeightPx <= 0) {
+                    0f
+                } else if (lazyListState.firstVisibleItemIndex > 0) {
                     1f
                 } else {
-                    (lazyListState.firstVisibleItemScrollOffset / 220f).coerceIn(0f, 1f)
+                    (lazyListState.firstVisibleItemScrollOffset.toFloat() / logoSpacerHeightPx).coerceIn(0f, 1f)
                 }
             }
         }
@@ -98,7 +112,7 @@ class ModuleAboutActivity : ComponentActivity() {
                 SmallTopAppBar(
                     title = "关于",
                     scrollBehavior = scrollBehavior,
-                    color = MiuixTheme.colorScheme.surface.copy(alpha = scrollProgress),
+                    color = MiuixTheme.colorScheme.surface.copy(alpha = if (scrollProgress == 1f) 1f else 0f),
                     titleColor = MiuixTheme.colorScheme.onSurface.copy(alpha = scrollProgress),
                     defaultWindowInsetsPadding = false,
                     navigationIcon = { MiuixBackButton(onClick = { finish() }) },
@@ -106,14 +120,28 @@ class ModuleAboutActivity : ComponentActivity() {
             },
             containerColor = MiuixTheme.colorScheme.surface,
         ) { padding ->
-            AboutBackdrop {
+            AboutBackdrop(scrollProgress = scrollProgress) {
                 Box(modifier = Modifier.fillMaxSize()) {
-                    ImportLazyColumn(
+                    AboutHeader(
                         padding = padding,
-                        modifier = Modifier.fillMaxSize(),
+                        scrollProgress = scrollProgress,
+                    )
+                    LazyColumn(
                         state = lazyListState,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .nestedScroll(scrollBehavior.nestedScrollConnection),
+                        contentPadding = PaddingValues(
+                            top = padding.calculateTopPadding(),
+                            bottom = padding.calculateBottomPadding() + 12.dp,
+                        ),
                     ) {
-                        item { AboutHeader() }
+                        item(key = "logo-spacer") {
+                            AboutHeaderSpacer(
+                                padding = padding,
+                                onHeightChanged = { logoSpacerHeightPx = it },
+                            )
+                        }
                         aboutMiuixSection("关于") {
                             MiuixNavigationRow(
                                 title = "开源项目引用",
@@ -195,7 +223,10 @@ class ModuleAboutActivity : ComponentActivity() {
 }
 
 @Composable
-private fun AboutHeader() {
+private fun AboutHeader(
+    padding: PaddingValues,
+    scrollProgress: Float,
+) {
     val isDark = isSystemInDarkTheme()
     val blurEnable = remember { isRenderEffectSupported() }
     val backdrop = LocalAboutBackdrop.current
@@ -217,16 +248,21 @@ private fun AboutHeader() {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 48.dp, bottom = 32.dp),
+            .padding(top = padding.calculateTopPadding() + 92.dp)
+            .graphicsLayer {
+                alpha = 1f - scrollProgress
+                val scale = 1f - scrollProgress * 0.05f
+                scaleX = scale
+                scaleY = scale
+            },
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier.size(88.dp),
         ) {
             Icon(
-                imageVector = MiuixIcons.Regular.Info,
+                painter =  painterResource(id = R.drawable.about_ic),
                 contentDescription = null,
                 modifier = Modifier
                     .size(92.dp)
@@ -251,28 +287,46 @@ private fun AboutHeader() {
         }
         Text(
             text = "小爱课程表 Revived",
-            modifier = Modifier.then(
-                if (backdrop != null) {
-                    Modifier.textureBlur(
-                        backdrop = backdrop,
-                        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp),
-                        blurRadius = 150f,
-                        noiseCoefficient = BlurDefaults.NoiseCoefficient,
-                        colors = BlurColors(blendColors = logoBlend),
-                        contentBlendMode = BlendMode.DstIn,
-                        enabled = blurEnable,
-                    )
-                } else {
-                    Modifier
-                },
-            ),
+            modifier = Modifier
+                .padding(top = 12.dp, bottom = 5.dp)
+                .then(
+                    if (backdrop != null) {
+                        Modifier.textureBlur(
+                            backdrop = backdrop,
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp),
+                            blurRadius = 150f,
+                            noiseCoefficient = BlurDefaults.NoiseCoefficient,
+                            colors = BlurColors(blendColors = logoBlend),
+                            contentBlendMode = BlendMode.DstIn,
+                            enabled = blurEnable,
+                        )
+                    } else {
+                        Modifier
+                    },
+                ),
             fontWeight = FontWeight.Bold,
-            fontSize = 30.sp,
+            fontSize = 35.sp,
+            textAlign = TextAlign.Center,
         )
         MiuixSecondaryText(
             text = "Version ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+            modifier = Modifier.padding(horizontal = 24.dp),
         )
     }
+}
+
+@Composable
+private fun AboutHeaderSpacer(
+    padding: PaddingValues,
+    onHeightChanged: (Int) -> Unit,
+) {
+    val spacerHeight = padding.calculateTopPadding() + 318.dp
+    Spacer(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(spacerHeight)
+            .onSizeChanged { onHeightChanged(it.height) },
+    )
 }
 
 private val LocalAboutBackdrop = androidx.compose.runtime.staticCompositionLocalOf<top.yukonga.miuix.kmp.blur.LayerBackdrop?> { null }
@@ -341,9 +395,12 @@ private fun AboutBlurCard(
 }
 
 @Composable
-private fun AboutBackdrop(content: @Composable () -> Unit) {
+private fun AboutBackdrop(
+    scrollProgress: Float,
+    content: @Composable () -> Unit,
+) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        AboutShaderBackdrop(content)
+        AboutShaderBackdrop(scrollProgress = scrollProgress, content = content)
     } else {
         Box(modifier = Modifier.fillMaxSize()) {
             content()
@@ -353,7 +410,10 @@ private fun AboutBackdrop(content: @Composable () -> Unit) {
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Composable
-private fun AboutShaderBackdrop(content: @Composable () -> Unit) {
+private fun AboutShaderBackdrop(
+    scrollProgress: Float,
+    content: @Composable () -> Unit,
+) {
     val backdrop = rememberLayerBackdrop()
     androidx.compose.runtime.CompositionLocalProvider(LocalAboutBackdrop provides backdrop) {
         BgEffectBackground(
@@ -362,6 +422,7 @@ private fun AboutShaderBackdrop(content: @Composable () -> Unit) {
             modifier = Modifier.fillMaxSize(),
             bgModifier = Modifier.layerBackdrop(backdrop),
             effectBackground = true,
+            alpha = { 1f - scrollProgress },
         ) {
             content()
         }
