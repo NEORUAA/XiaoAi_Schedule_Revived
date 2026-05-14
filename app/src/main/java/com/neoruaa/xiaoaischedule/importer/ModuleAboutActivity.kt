@@ -96,7 +96,7 @@ class ModuleAboutActivity : ComponentActivity() {
         Scaffold(
             topBar = {
                 SmallTopAppBar(
-                    title = "关于模块",
+                    title = "关于",
                     scrollBehavior = scrollBehavior,
                     color = MiuixTheme.colorScheme.surface.copy(alpha = scrollProgress),
                     titleColor = MiuixTheme.colorScheme.onSurface.copy(alpha = scrollProgress),
@@ -116,11 +116,6 @@ class ModuleAboutActivity : ComponentActivity() {
                         item { AboutHeader() }
                         aboutMiuixSection("关于") {
                             MiuixNavigationRow(
-                                title = "应用作者",
-                                summary = "NEORUAA · https://github.com/NEORUAA",
-                                onClick = { openUri("https://github.com/NEORUAA") },
-                            )
-                            MiuixNavigationRow(
                                 title = "开源项目引用",
                                 summary = "本项目使用或参考的开源项目与许可证",
                                 onClick = { OpenSourceNoticesActivity.start(this@ModuleAboutActivity) },
@@ -133,8 +128,8 @@ class ModuleAboutActivity : ComponentActivity() {
                         }
                         aboutMiuixSection("调试") {
                             MiuixNavigationRow(
-                                title = "JavaScript注入",
-                                summary = "调用小爱的界面点击导入后自动注入 JavaScript",
+                                title = "JavaScript 执行",
+                                summary = "在小爱课程表的环境中指定 URL 执行 JavaScript",
                                 onClick = { showDebugDialog = true },
                             )
                             MiuixNavigationRow(
@@ -143,7 +138,10 @@ class ModuleAboutActivity : ComponentActivity() {
                                 onClick = { showSourceDialog = true },
                             )
                         }
-                        aboutMiuixSection("模块作者") {
+                        aboutMiuixSection("应用框架贡献者") {
+                            MiuixNavigationRow("NEORUAA", "绫猫", onClick = { openUri("https://github.com/NEORUAA") })
+                        }
+                        aboutMiuixSection("教务导入贡献者") {
                             MiuixNavigationRow("帕帝天秀", "小爱课程表的忠实粉丝", onClick = { openQq("3373587110") })
                             MiuixNavigationRow("Mercury", "AI导入课表部分全部代码实现；超级小爱适配", onClick = { openQq("3038899204") })
                             MiuixNavigationRow("颜致恒plus", "教务导入思路提供者", onClick = { openQq("2488971290") })
@@ -252,12 +250,12 @@ private fun AboutHeader() {
             )
         }
         Text(
-            text = "XiaoAi Schedule Revived",
+            text = "小爱课程表 Revived",
             modifier = Modifier.then(
                 if (backdrop != null) {
                     Modifier.textureBlur(
                         backdrop = backdrop,
-                        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp),
                         blurRadius = 150f,
                         noiseCoefficient = BlurDefaults.NoiseCoefficient,
                         colors = BlurColors(blendColors = logoBlend),
