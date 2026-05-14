@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import com.neoruaa.xiaoaischedule.delete.DeleteServiceActivity
+import com.neoruaa.xiaoaischedule.importer.ImportHubActivity
+import com.neoruaa.xiaoaischedule.importer.ModuleAboutActivity
 
 class NativeRouteHandler {
     fun handleExternalScheme(uri: Uri?, context: Context): Boolean {
@@ -42,6 +44,16 @@ class NativeRouteHandler {
 
         if (matches(uri, "/schedule/delete_service", "schedule", "/delete_service")) {
             context.startActivity(Intent(context, DeleteServiceActivity::class.java))
+            return true
+        }
+
+        if (matches(uri, "/schedule/import_repair", "schedule", "/import_repair")) {
+            ImportHubActivity.start(context)
+            return true
+        }
+
+        if (matches(uri, "/schedule/module_about", "schedule", "/module_about")) {
+            ModuleAboutActivity.start(context)
             return true
         }
 

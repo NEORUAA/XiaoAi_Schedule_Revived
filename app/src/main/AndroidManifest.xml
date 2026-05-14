@@ -73,6 +73,32 @@
                 android:exported="false"
                 android:screenOrientation="portrait"
                 android:theme="@style/Theme.Xiaoaischedule" />
+        <activity
+                android:name=".importer.ImportHubActivity"
+                android:exported="false"
+                android:screenOrientation="portrait"
+                android:theme="@style/Theme.Xiaoaischedule" />
+        <activity
+                android:name=".importer.ImportWebViewActivity"
+                android:exported="false"
+                android:screenOrientation="portrait"
+                android:theme="@style/Theme.Xiaoaischedule"
+                android:windowSoftInputMode="adjustPan" />
+        <activity
+                android:name=".importer.CoursePreviewActivity"
+                android:exported="false"
+                android:screenOrientation="portrait"
+                android:theme="@style/Theme.Xiaoaischedule" />
+        <activity
+                android:name=".importer.ModuleAboutActivity"
+                android:exported="false"
+                android:screenOrientation="portrait"
+                android:theme="@style/Theme.Xiaoaischedule" />
+        <activity
+                android:name=".importer.OpenSourceNoticesActivity"
+                android:exported="false"
+                android:screenOrientation="portrait"
+                android:theme="@style/Theme.Xiaoaischedule" />
 
         <provider
                 android:name="androidx.core.content.FileProvider"

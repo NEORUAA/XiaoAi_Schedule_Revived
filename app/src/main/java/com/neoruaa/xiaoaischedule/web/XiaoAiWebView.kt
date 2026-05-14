@@ -42,6 +42,8 @@ import androidx.compose.ui.zIndex
 import com.neoruaa.xiaoaischedule.R
 import com.neoruaa.xiaoaischedule.account.AccountRepository
 import com.neoruaa.xiaoaischedule.data.PrivacyStore
+import com.neoruaa.xiaoaischedule.importer.ImportJs
+import com.neoruaa.xiaoaischedule.importer.ScheduleRepairAndroidBridge
 import kotlin.coroutines.resume
 import kotlin.math.roundToInt
 import kotlinx.coroutines.CoroutineScope
@@ -74,6 +76,11 @@ fun XiaoAiWebView(
             context.assets.open(XiaoAiCssAsset).bufferedReader().use { it.readText() }
         }.getOrDefault("")
     }
+    val importToolsJs = remember(context) {
+        runCatching {
+            context.assets.open(XiaoAiImportToolsAsset).bufferedReader().use { it.readText() }
+        }.getOrDefault("")
+    }
 
     val webView = remember(url) {
         WebView(context).apply {
@@ -101,6 +108,7 @@ fun XiaoAiWebView(
             ),
             "app",
         )
+        webView.addJavascriptInterface(ScheduleRepairAndroidBridge(context), "Android")
         webView.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                 return handleUrl(request.url)
@@ -119,6 +127,8 @@ fun XiaoAiWebView(
                 super.onPageFinished(view, url)
                 view.injectXiaoAiCss(xiaoAiCss)
                 view.injectXiaoAiSafeArea(context.statusBarCssPx())
+                view.injectXiaoAiImportTools(importToolsJs)
+                view.evaluateJavascript(ImportJs.SettingPatch, null)
             }
 
             override fun onReceivedError(
@@ -241,6 +251,27 @@ private fun WebView.injectXiaoAiCss(css: String) {
     )
 }
 
+private fun WebView.injectXiaoAiImportTools(script: String) {
+    if (script.isBlank()) return
+    evaluateJavascript(
+        """
+            (function() {
+              if (window.__xiaoAiImportToolsInjected) return;
+              window.__xiaoAiImportToolsInjected = true;
+              try {
+                ${script}
+                if (typeof AIScheduleTools === 'function') {
+                  AIScheduleTools();
+                }
+              } catch (e) {
+                console.warn('xiaoai import tools inject failed', e);
+              }
+            })();
+        """.trimIndent(),
+        null,
+    )
+}
+
 private fun WebView.injectXiaoAiSafeArea(statusBarHeight: Int) {
     evaluateJavascript(
         XiaoAiSafeAreaPatch.replace("__STATUS_BAR_HEIGHT__", statusBarHeight.toString()),
@@ -317,6 +348,7 @@ private fun View.applyExactViewportLayoutParams(width: Int, height: Int) {
 }
 
 private const val XiaoAiCssAsset = "xiaoai.css"
+private const val XiaoAiImportToolsAsset = "aischedule_tools.js"
 
 private val XiaoAiSafeAreaPatch = """
     (function() {
