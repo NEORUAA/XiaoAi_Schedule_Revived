@@ -50,6 +50,8 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.miuix.core)
     implementation(libs.miuix.ui)
+    implementation(libs.miuix.blur)
+    implementation(libs.miuix.preference)
     implementation(libs.miuix.icons)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)

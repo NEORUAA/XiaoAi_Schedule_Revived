@@ -7,20 +7,14 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -37,7 +31,10 @@ import com.neoruaa.xiaoaischedule.ui.MiuixPageScaffold
 import com.neoruaa.xiaoaischedule.ui.theme.XiaoaischeduleTheme
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
+import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
@@ -96,41 +93,50 @@ class ImportHubActivity : ComponentActivity() {
                 if (selectedSchool != null) selectedSchool = null else finish()
             },
         ) { padding ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ImportLazyColumn(
+                padding = padding,
+                modifier = Modifier.fillMaxSize(),
             ) {
                 if (selectedSchool == null) {
-                    QuickActions(
-                        onAi = { showAiDialog = true },
-                        onJson = { showJsonDialog = true },
-                        onRefresh = { refresh(force = true) },
-                        loading = loading,
-                    )
-                    if (message.isNotBlank()) Text(text = message, color = Color(0x99000000))
-                    SourceSection("通用教务系统", commonSources) { item ->
-                        if (item.url.isBlank()) {
-                            pendingCommonSource = item
-                        } else {
-                            openCommonSource(scope, item, item.url) { loading = it }
+                    item {
+                        QuickActions(
+                            onAi = { showAiDialog = true },
+                            onJson = { showJsonDialog = true },
+                            onRefresh = { refresh(force = true) },
+                            loading = loading,
+                        )
+                    }
+                    if (message.isNotBlank()) {
+                        item {
+                            MiuixSecondaryText(
+                                text = message,
+                                modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),
+                            )
                         }
                     }
-                    SchoolSection(schools) { selectedSchool = it }
-                } else {
-                    AdapterSection(
-                        school = selectedSchool!!,
-                        onAdapter = { school, adapter ->
-                            if (adapter.importUrl.isBlank()) {
-                                pendingAdapter = PendingAdapterInput(school, adapter)
+                    item {
+                        SourceSection("通用教务系统", commonSources) { item ->
+                            if (item.url.isBlank()) {
+                                pendingCommonSource = item
                             } else {
-                                openAdapterSource(scope, school, adapter, adapter.importUrl) { loading = it }
+                                openCommonSource(scope, item, item.url) { loading = it }
                             }
-                        },
-                    )
+                        }
+                    }
+                    item { SchoolSection(schools) { selectedSchool = it } }
+                } else {
+                    item {
+                        AdapterSection(
+                            school = selectedSchool!!,
+                            onAdapter = { school, adapter ->
+                                if (adapter.importUrl.isBlank()) {
+                                    pendingAdapter = PendingAdapterInput(school, adapter)
+                                } else {
+                                    openAdapterSource(scope, school, adapter, adapter.importUrl) { loading = it }
+                                }
+                            },
+                        )
+                    }
                 }
             }
         }
@@ -266,21 +272,29 @@ private fun QuickActions(
     onRefresh: () -> Unit,
     loading: Boolean,
 ) {
-    Column(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MiuixTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+            .padding(horizontal = 12.dp)
+            .padding(bottom = 12.dp),
+        colors = CardDefaults.defaultColors(
+            color = MiuixTheme.colorScheme.surfaceContainer,
+            contentColor = MiuixTheme.colorScheme.onSurface,
+        ),
     ) {
-        Text(text = "导入方式", fontWeight = FontWeight.SemiBold)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            TextButton(modifier = Modifier.weight(1f), text = "AI解析导入", colors = ButtonDefaults.textButtonColorsPrimary(), onClick = onAi)
-            TextButton(modifier = Modifier.weight(1f), text = "JSON导入", onClick = onJson)
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            TextButton(modifier = Modifier.weight(1f), text = "刷新导入源", onClick = onRefresh, enabled = !loading)
-            if (loading) CircularProgressIndicator(modifier = Modifier.height(20.dp), strokeWidth = 2.dp)
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(text = "导入方式", style = MiuixTheme.textStyles.title4, fontWeight = FontWeight.SemiBold)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(modifier = Modifier.weight(1f), text = "AI解析导入", colors = ButtonDefaults.textButtonColorsPrimary(), onClick = onAi)
+                TextButton(modifier = Modifier.weight(1f), text = "JSON导入", onClick = onJson)
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                TextButton(modifier = Modifier.weight(1f), text = "刷新导入源", onClick = onRefresh, enabled = !loading)
+                if (loading) CircularProgressIndicator(modifier = Modifier.height(20.dp), strokeWidth = 2.dp)
+            }
         }
     }
 }
@@ -292,7 +306,7 @@ private fun SourceSection(
     onClick: (ImportSourceItem) -> Unit,
 ) {
     Column {
-        Text(text = title, modifier = Modifier.padding(start = 4.dp, bottom = 8.dp), color = Color(0x99000000))
+        SmallTitle(title)
         if (items.isEmpty()) {
             EmptyCard("暂无通用导入源")
         } else {
@@ -315,7 +329,7 @@ private fun SchoolSection(
     onClick: (ShiguangSchool) -> Unit,
 ) {
     Column {
-        Text(text = "适配仓库", modifier = Modifier.padding(start = 4.dp, bottom = 8.dp), color = Color(0x99000000))
+        SmallTitle("适配仓库")
         if (schools.isEmpty()) {
             EmptyCard("暂无拾光适配学校")
         } else {
@@ -339,7 +353,7 @@ private fun AdapterSection(
     onAdapter: (ShiguangSchool, ShiguangAdapter) -> Unit,
 ) {
     Column {
-        Text(text = "拾光适配", modifier = Modifier.padding(start = 4.dp, bottom = 8.dp), color = Color(0x99000000))
+        SmallTitle("拾光适配")
         if (school.adapters.isEmpty()) {
             EmptyCard("该学校暂无可用适配")
         } else {
@@ -365,42 +379,27 @@ private fun AdapterSection(
 
 @Composable
 private fun CardList(content: @Composable ColumnScope.() -> Unit) {
-    Column(
+    MiuixInfoCard(
         modifier = Modifier
-            .fillMaxWidth()
-            .background(MiuixTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp)),
+            .padding(horizontal = 12.dp)
+            .padding(bottom = 12.dp),
         content = content,
     )
 }
 
 @Composable
 private fun ListRow(title: String, subtitle: String, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(text = title, fontWeight = FontWeight.Medium)
-            if (subtitle.isNotBlank()) {
-                Text(text = subtitle, modifier = Modifier.padding(top = 4.dp), color = Color(0x99000000))
-            }
-        }
-        Text(text = "›", color = Color(0x66000000))
-    }
+    MiuixNavigationRow(title = title, summary = subtitle, onClick = onClick)
 }
 
 @Composable
 private fun EmptyCard(text: String) {
-    Column(
+    MiuixInfoCard(
         modifier = Modifier
-            .fillMaxWidth()
-            .background(MiuixTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
-            .padding(16.dp),
+            .padding(horizontal = 12.dp)
+            .padding(bottom = 12.dp),
     ) {
-        Text(text = text, color = Color(0x99000000))
+        MiuixPlainRow(title = text)
     }
 }
 

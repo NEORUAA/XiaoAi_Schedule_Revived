@@ -7,26 +7,11 @@ import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import com.neoruaa.xiaoaischedule.ui.MiuixPageScaffold
 import com.neoruaa.xiaoaischedule.ui.theme.XiaoaischeduleTheme
-import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 class OpenSourceNoticesActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -44,26 +29,18 @@ class OpenSourceNoticesActivity : ComponentActivity() {
             title = "开源项目引用",
             onBack = { finish() },
         ) { padding ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
+            ImportLazyColumn(
+                padding = padding,
+                modifier = Modifier.fillMaxSize(),
             ) {
-                OpenSourceProjects.forEachIndexed { index, item ->
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(MiuixTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
-                            .clickable { openUrl(item.url) }
-                            .padding(16.dp),
-                    ) {
-                        Text(text = item.name, fontWeight = FontWeight.SemiBold)
-                        Text(text = item.author, modifier = Modifier.padding(top = 4.dp), color = Color(0x99000000))
-                        Text(text = item.license, modifier = Modifier.padding(top = 4.dp), color = Color(0x99000000))
+                miuixSection("开源项目引用") {
+                    OpenSourceProjects.forEach { item ->
+                        MiuixNavigationRow(
+                            title = item.name,
+                            summary = "${item.author} · ${item.license}",
+                            onClick = { openUrl(item.url) },
+                        )
                     }
-                    if (index != OpenSourceProjects.lastIndex) Spacer(Modifier.height(10.dp))
                 }
             }
         }

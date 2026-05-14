@@ -7,7 +7,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.basic.TopAppBar
+import top.yukonga.miuix.kmp.basic.SmallTopAppBar
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.theme.LocalContentColor
@@ -33,7 +33,7 @@ fun SimpleTopBar(
     title: String,
     onBack: () -> Unit,
 ) {
-    TopAppBar(
+    SmallTopAppBar(
         color = MiuixTheme.colorScheme.surface,
         title = title,
         navigationIcon = {

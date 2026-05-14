@@ -6,19 +6,14 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -27,7 +22,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.neoruaa.xiaoaischedule.MainActivity
@@ -38,7 +32,10 @@ import com.neoruaa.xiaoaischedule.ui.theme.XiaoaischeduleTheme
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
+import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
@@ -83,7 +80,6 @@ class CoursePreviewActivity : ComponentActivity() {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(MiuixTheme.colorScheme.surface)
                         .padding(horizontal = 18.dp, vertical = 12.dp),
                 ) {
                     if (error.isNotBlank()) {
@@ -124,25 +120,26 @@ class CoursePreviewActivity : ComponentActivity() {
                 }
             },
         ) { padding ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ImportLazyColumn(
+                padding = padding,
+                modifier = Modifier.fillMaxSize(),
             ) {
-                SummaryCard(
-                    total = courses.size,
-                    valid = validCount,
-                    invalid = invalidCount,
-                    conflicts = conflictCount,
-                )
-                courses.forEachIndexed { index, course ->
-                    CourseCard(
-                        course = course,
-                        onClick = { editingIndex = index },
+                item {
+                    SummaryCard(
+                        total = courses.size,
+                        valid = validCount,
+                        invalid = invalidCount,
+                        conflicts = conflictCount,
                     )
+                }
+                item { SmallTitle("课程") }
+                courses.forEachIndexed { index, course ->
+                    item {
+                        CourseCard(
+                            course = course,
+                            onClick = { editingIndex = index },
+                        )
+                    }
                 }
             }
         }
@@ -171,48 +168,57 @@ class CoursePreviewActivity : ComponentActivity() {
 
 @Composable
 private fun SummaryCard(total: Int, valid: Int, invalid: Int, conflicts: Int) {
-    Column(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MiuixTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
-            .padding(16.dp),
+            .padding(horizontal = 12.dp)
+            .padding(bottom = 12.dp),
+        colors = CardDefaults.defaultColors(
+            color = MiuixTheme.colorScheme.surfaceContainer,
+            contentColor = MiuixTheme.colorScheme.onSurface,
+        ),
     ) {
-        Text(text = "共解析 $total 门课程", fontWeight = FontWeight.SemiBold)
-        Text(
-            text = "可导入 $valid 门，无效 $invalid 门，冲突 $conflicts 处",
-            modifier = Modifier.padding(top = 6.dp),
-            color = Color(0x99000000),
-        )
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(text = "共解析 $total 门课程", style = MiuixTheme.textStyles.title4, fontWeight = FontWeight.SemiBold)
+            MiuixSecondaryText(
+                text = "可导入 $valid 门，无效 $invalid 门，冲突 $conflicts 处",
+                modifier = Modifier.padding(top = 6.dp),
+            )
+        }
     }
 }
 
 @Composable
 private fun CourseCard(course: ImportCourseDraft, onClick: () -> Unit) {
-    val cardColor = if (course.isValid) MiuixTheme.colorScheme.surfaceVariant else Color(0xFFFFEBEE)
-    Column(
+    val cardColor = if (course.isValid) MiuixTheme.colorScheme.surfaceContainer else MiuixTheme.colorScheme.errorContainer
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .background(cardColor, RoundedCornerShape(8.dp))
-            .clickable(onClick = onClick)
-            .padding(16.dp),
+            .padding(horizontal = 12.dp)
+            .padding(bottom = 10.dp)
+            .clickable(onClick = onClick),
+        colors = CardDefaults.defaultColors(
+            color = cardColor,
+            contentColor = MiuixTheme.colorScheme.onSurface,
+        ),
     ) {
-        Text(text = course.name.ifBlank { "未命名课程" }, fontWeight = FontWeight.SemiBold)
-        Text(
-            text = "周${course.day} · 第${course.sections.joinToString(",")}节 · 第${course.weeks.joinToString(",")}周",
-            modifier = Modifier.padding(top = 6.dp),
-            color = Color(0xCC000000),
-        )
-        if (course.teacher.isNotBlank() || course.position.isNotBlank()) {
-            Text(
-                text = listOf(course.teacher, course.position).filter { it.isNotBlank() }.joinToString(" · "),
-                modifier = Modifier.padding(top = 4.dp),
-                color = Color(0x99000000),
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(text = course.name.ifBlank { "未命名课程" }, style = MiuixTheme.textStyles.title4, fontWeight = FontWeight.SemiBold)
+            MiuixSecondaryText(
+                text = "周${course.day} · 第${course.sections.joinToString(",")}节 · 第${course.weeks.joinToString(",")}周",
+                modifier = Modifier.padding(top = 6.dp),
             )
-        }
-        if (!course.isValid) {
-            Text(text = course.invalidReason, modifier = Modifier.padding(top = 6.dp), color = Color(0xFFD32F2F))
-        } else if (course.repaired) {
-            Text(text = "已自动修复部分字段", modifier = Modifier.padding(top = 6.dp), color = Color(0xFF0D84FF))
+            if (course.teacher.isNotBlank() || course.position.isNotBlank()) {
+                MiuixSecondaryText(
+                    text = listOf(course.teacher, course.position).filter { it.isNotBlank() }.joinToString(" · "),
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
+            if (!course.isValid) {
+                Text(text = course.invalidReason, modifier = Modifier.padding(top = 6.dp), color = MiuixTheme.colorScheme.error)
+            } else if (course.repaired) {
+                Text(text = "已自动修复部分字段", modifier = Modifier.padding(top = 6.dp), color = MiuixTheme.colorScheme.primary)
+            }
         }
     }
 }

@@ -1,5 +1,7 @@
 package com.neoruaa.xiaoaischedule.importer
 
+import com.neoruaa.xiaoaischedule.BuildConfig
+
 object ImportJs {
     val BridgeGlue = """
         (function(){
@@ -111,8 +113,10 @@ object ImportJs {
             try {
               if (!/#\/(set_schedule|setting)/.test(location.hash || '')) return;
               replaceLeafText('教务导入系统暂停维护中', '从教务系统中导入课表');
-              replaceLeafText('选择学历', '关于模块');
-              replaceLeafText('本科/专科', '小爱课程表复活计划');
+              replaceLeafText('选择学历', '关于 XiaoAi Schedule Revived');
+              replaceLeafText('关于模块', '关于 XiaoAi Schedule Revived');
+              replaceLeafText('本科/专科', 'Version ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})');
+              replaceLeafText('小爱课程表复活计划', 'Version ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})');
 
               var importButton = document.getElementById('ai-class-shedule-fe-setting-button-jiaoyu');
               bindOnce(importButton, '__xiaoAiImportBound', function(){
@@ -122,10 +126,10 @@ object ImportJs {
               var labels = Array.prototype.slice.call(document.querySelectorAll('[class^="label___"], [class*=" label___"]'));
               labels.forEach(function(label){
                 var text = textOf(label);
-                if (text === '关于应用') {
+                if (text === '关于 XiaoAi Schedule Revived') {
                   var row = closestWrap(label);
                   if (row) {
-                    row.setAttribute('aria-label', '关于 小爱课程表 Revived 应用');
+                    row.setAttribute('aria-label', '关于 XiaoAi Schedule Revived Version ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})');
                     bindOnce(row, '__xiaoAiAboutBound', function(){
                       if (window.Android && Android.navModuleScreen) Android.navModuleScreen();
                     });
