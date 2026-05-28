@@ -13,7 +13,7 @@ android {
     defaultConfig {
         applicationId = "com.neoruaa.xiaoaischedule"
         minSdk = 28
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 101001000
         versionName = "1.1.0"
 

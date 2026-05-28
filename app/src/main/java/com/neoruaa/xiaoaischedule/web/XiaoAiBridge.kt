@@ -43,7 +43,12 @@ class XiaoAiBridge(
     private fun handleAction(action: String, params: JSONObject) {
         when (action) {
             "appVersion" -> postResult(params.callback, appVersion(params.id))
-            "getUserInfo" -> postResult(params.callback, userInfo(params.id))
+            "getUserInfo" -> {
+                scope.launch(Dispatchers.IO) {
+                    val payload = userInfo(params.id)
+                    withContext(Dispatchers.Main) { postResult(params.callback, payload) }
+                }
+            }
             "getAuthorization" -> {
                 scope.launch(Dispatchers.IO) {
                     val auth = accountRepository.authorization()
@@ -130,8 +135,8 @@ class XiaoAiBridge(
         }
     }
 
-    private fun userInfo(id: String): String {
-        val session = accountRepository.currentSession()
+    private suspend fun userInfo(id: String): String {
+        val session = accountRepository.currentFreshSession()
         return nested("getUserInfo", id) {
             put("appId", XiaoAiConstants.AppId)
             put("deviceId", privacyStore.deviceId())

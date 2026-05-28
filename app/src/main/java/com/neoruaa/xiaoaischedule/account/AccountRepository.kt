@@ -25,6 +25,8 @@ import io.ktor.http.setCookie
 import io.ktor.http.userAgent
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -53,6 +55,7 @@ class AccountRepository(
 
     private val _session = MutableStateFlow(loadSession())
     val session: StateFlow<LoginSession?> = _session
+    private val refreshMutex = Mutex()
 
     fun savedPassword(): SavedPassword? = privacyStore.savedPassword()
 
@@ -72,10 +75,10 @@ class AccountRepository(
         }
     }
 
-    suspend fun sendTicket(flag: Int): Boolean {
+    suspend fun sendTicket(flag: Int): SendTicketResult {
         val apiPath = if (flag == 4) "/identity/auth/sendPhoneTicket" else "/identity/auth/sendEmailTicket"
         return runCatching {
-            client.submitForm(
+            val response = client.submitForm(
                 url = "${XiaoAiConstants.XiaomiAccountUrl}$apiPath",
                 formParameters = parameters {
                     append("_json", "true")
@@ -84,8 +87,30 @@ class AccountRepository(
                 },
             ) {
                 parameter("_dc", System.currentTimeMillis())
-            }.status.isSuccess()
-        }.getOrDefault(false)
+            }
+            val body = response.bodyAsText()
+            if (!response.status.isSuccess()) {
+                return@runCatching SendTicketResult.Error("验证码发送失败，请稍后重试")
+            }
+            val json = runCatching { JSONObject(stripXiaomiPrefix(body)) }.getOrNull()
+                ?: return@runCatching SendTicketResult.Success
+            when (val code = json.optInt("code", 0)) {
+                0 -> SendTicketResult.Success
+                XiaomiTicketTooManyRequests -> SendTicketResult.Error(
+                    json.firstNonBlank("tips", "desc", "description", "title")
+                        .ifBlank { "验证码发送过多，请明天再试" },
+                )
+                else -> SendTicketResult.Error(
+                    json.firstNonBlank("desc", "tips", "description", "title")
+                        .ifBlank { "验证码发送失败" },
+                ).also {
+                    Log.w(Tag, "send ticket failed: code=$code")
+                }
+            }
+        }.getOrElse {
+            Log.w(Tag, "send ticket failed: ${it.javaClass.simpleName}")
+            SendTicketResult.Error("验证码发送失败，请稍后重试")
+        }
     }
 
     suspend fun submitTwoFactorTicket(
@@ -109,7 +134,7 @@ class AccountRepository(
     }
 
     suspend fun authorization(): String {
-        val session = ensureFreshSession() ?: return ""
+        val session = currentFreshSession() ?: return ""
         return oauthAuthorization(session.accessToken)
     }
 
@@ -122,6 +147,8 @@ class AccountRepository(
     }
 
     fun currentSession(): LoginSession? = _session.value
+
+    suspend fun currentFreshSession(): LoginSession? = ensureFreshSession()
 
     suspend fun deleteScheduleService(): Boolean {
         val auth = authorizationWithScopeData()
@@ -309,38 +336,60 @@ class AccountRepository(
     }
 
     private suspend fun ensureFreshSession(): LoginSession? {
-        val current = _session.value ?: return null
-        if (!current.isExpired()) return current
-        val refreshed = refreshOAuthToken(current) ?: run {
-            logout(clearSavedPassword = false)
-            return null
+        return refreshMutex.withLock {
+            val current = _session.value ?: return@withLock null
+            if (!current.isExpired()) return@withLock current
+            when (val result = refreshOAuthToken(current)) {
+                is RefreshResult.Success -> {
+                    saveSession(result.session)
+                    Log.d(Tag, "OAuth token refreshed")
+                    result.session
+                }
+                RefreshResult.InvalidRefreshToken -> {
+                    logout(clearSavedPassword = false)
+                    null
+                }
+                RefreshResult.Failed -> null
+            }
         }
-        saveSession(refreshed)
-        return refreshed
     }
 
-    private suspend fun refreshOAuthToken(session: LoginSession): LoginSession? {
-        if (session.refreshToken.isBlank()) return null
-        val response = oauthClient.get("${XiaoAiConstants.XiaomiAccountUrl}/oauth2/auth/token") {
-            parameter("pt", "0")
-            parameter("grant_type", "refresh_token")
-            parameter("client_id", XiaoAiConstants.AppId)
-            parameter("client_secret", XiaoAiConstants.AppSecret)
-            parameter("redirect_uri", XiaoAiConstants.OAuthRedirectUri)
-            parameter("refresh_token", session.refreshToken)
+    private suspend fun refreshOAuthToken(session: LoginSession): RefreshResult {
+        if (session.refreshToken.isBlank()) return RefreshResult.InvalidRefreshToken
+        return runCatching {
+            val response = oauthClient.get("${XiaoAiConstants.XiaomiAccountUrl}/oauth2/auth/token") {
+                parameter("pt", "0")
+                parameter("grant_type", "refresh_token")
+                parameter("client_id", XiaoAiConstants.AppId)
+                parameter("client_secret", XiaoAiConstants.AppSecret)
+                parameter("redirect_uri", XiaoAiConstants.OAuthRedirectUri)
+                parameter("refresh_token", session.refreshToken)
+            }
+            val body = response.bodyAsText()
+            val oauth = parseOAuthToken(body)
+            if (oauth == null) {
+                val errorCode = parseOAuthErrorCode(body)
+                Log.w(Tag, "OAuth refresh parse failed: status=${response.status.value}, error=$errorCode, body=${sanitizeOAuthBody(body)}")
+                if (errorCode == OAuthErrorInvalidToken || errorCode == OAuthErrorInvalidRefreshToken) {
+                    RefreshResult.InvalidRefreshToken
+                } else {
+                    RefreshResult.Failed
+                }
+            } else {
+                RefreshResult.Success(
+                    session.copy(
+                        accessToken = oauth.accessToken,
+                        refreshToken = oauth.refreshToken.ifBlank { session.refreshToken },
+                        openId = oauth.openId.ifBlank { session.openId },
+                        expiresIn = oauth.expiresIn,
+                        lastRefreshTimeSeconds = System.currentTimeMillis() / 1000,
+                    ),
+                )
+            }
+        }.getOrElse {
+            Log.w(Tag, "OAuth refresh failed: ${it.javaClass.simpleName}")
+            RefreshResult.Failed
         }
-        val body = response.bodyAsText()
-        val oauth = parseOAuthToken(body) ?: run {
-            Log.w(Tag, "OAuth refresh parse failed: status=${response.status.value}, body=${sanitizeOAuthBody(body)}")
-            return null
-        }
-        return session.copy(
-            accessToken = oauth.accessToken,
-            refreshToken = oauth.refreshToken.ifBlank { session.refreshToken },
-            openId = oauth.openId.ifBlank { session.openId },
-            expiresIn = oauth.expiresIn,
-            lastRefreshTimeSeconds = System.currentTimeMillis() / 1000,
-        )
     }
 
     private fun parseOAuthToken(raw: String): OAuthToken? {
@@ -358,6 +407,18 @@ class AccountRepository(
     private fun oauthAuthorization(accessToken: String): String {
         if (accessToken.isBlank()) return ""
         return "AO-TOKEN-V1 dev_app_id:${XiaoAiConstants.AppId},access_token:$accessToken"
+    }
+
+    private fun parseOAuthErrorCode(raw: String): Int {
+        return runCatching { JSONObject(stripXiaomiPrefix(raw)).optInt("error", 0) }.getOrDefault(0)
+    }
+
+    private fun JSONObject.firstNonBlank(vararg names: String): String {
+        for (name in names) {
+            val value = optString(name).trim()
+            if (value.isNotBlank() && value != "null") return value
+        }
+        return ""
     }
 
     private fun loadSession(): LoginSession? {
@@ -402,14 +463,28 @@ class AccountRepository(
         val expiresIn: Long,
     )
 
+    private sealed interface RefreshResult {
+        data class Success(val session: LoginSession) : RefreshResult
+        data object Failed : RefreshResult
+        data object InvalidRefreshToken : RefreshResult
+    }
+
     sealed interface LoginResult {
         data class Success(val session: LoginSession) : LoginResult
         data class NeedTwoFactor(val options: List<Int>) : LoginResult
         data class Error(val message: String) : LoginResult
     }
 
+    sealed interface SendTicketResult {
+        data object Success : SendTicketResult
+        data class Error(val message: String) : SendTicketResult
+    }
+
     private companion object {
         const val Tag = "XiaoAiAccount"
         const val KeyLoginSession = "login_session"
+        const val OAuthErrorInvalidToken = 96008
+        const val OAuthErrorInvalidRefreshToken = 96009
+        const val XiaomiTicketTooManyRequests = 70022
     }
 }

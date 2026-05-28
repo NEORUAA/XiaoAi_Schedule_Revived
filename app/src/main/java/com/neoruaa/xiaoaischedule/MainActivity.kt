@@ -129,6 +129,11 @@ class MainActivity : ComponentActivity(), BridgeHost {
                 onImportJwcFinish()
             }
         }
+        LaunchedEffect(privacyAgreed) {
+            if (privacyAgreed) {
+                accountRepository.currentFreshSession()
+            }
+        }
         LaunchedEffect(selectedTab) {
             WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = ((selectedTab != MainTab.Today) && !isSystemNightMode())
         }

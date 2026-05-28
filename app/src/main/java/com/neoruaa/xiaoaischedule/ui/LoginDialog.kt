@@ -72,11 +72,9 @@ fun LoginDialog(
         scope.launch {
             sendingFlag = flag
             error = null
-            val sent = accountRepository.sendTicket(flag)
-            if (sent) {
-                selectedFlag = flag
-            } else {
-                error = "验证码发送失败"
+            when (val result = accountRepository.sendTicket(flag)) {
+                AccountRepository.SendTicketResult.Success -> selectedFlag = flag
+                is AccountRepository.SendTicketResult.Error -> error = result.message
             }
             sendingFlag = 0
         }
