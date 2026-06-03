@@ -15,13 +15,17 @@ data class LoginSession(
     val refreshToken: String = "",
     val openId: String = "",
     val expiresIn: Long = 0,
-    val lastRefreshTimeSeconds: Long = System.currentTimeMillis() / 1000,
+    val lastRefreshTimeSeconds: Long = 0,
 ) {
     val isLoggedIn: Boolean
-        get() = accessToken.isNotBlank()
+        get() = accessToken.isNotBlank() && hasRefreshMetadata
+
+    val hasRefreshMetadata: Boolean
+        get() = refreshToken.isNotBlank() && expiresIn > 0 && lastRefreshTimeSeconds > 0
 
     fun isExpired(skewSeconds: Long = 60): Boolean {
-        if (accessToken.isBlank() || refreshToken.isBlank() || expiresIn <= 0) return false
+        if (accessToken.isBlank()) return true
+        if (!hasRefreshMetadata) return true
         val now = System.currentTimeMillis() / 1000
         return lastRefreshTimeSeconds + expiresIn - skewSeconds <= now
     }

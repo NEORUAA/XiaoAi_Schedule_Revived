@@ -135,6 +135,7 @@ class AccountRepository(
 
     suspend fun authorization(): String {
         val session = currentFreshSession() ?: return ""
+        if (!session.isLoggedIn) return ""
         return oauthAuthorization(session.accessToken)
     }
 
@@ -233,6 +234,10 @@ class AccountRepository(
 
         val oauth = issueOAuthToken(serviceToken, userId)
             ?: return LoginResult.Error("获取课程表 OAuth token 失败")
+        if (oauth.refreshToken.isBlank() || oauth.expiresIn <= 0) {
+            Log.w(Tag, "OAuth issued-token missing refresh metadata: refresh=${oauth.refreshToken.isNotBlank()}, expiresIn=${oauth.expiresIn}")
+            return LoginResult.Error("获取课程表 OAuth token 失败")
+        }
 
         val session = LoginSession(
             account = account,
@@ -339,6 +344,10 @@ class AccountRepository(
         return refreshMutex.withLock {
             val current = _session.value ?: return@withLock null
             if (!current.isExpired()) return@withLock current
+            Log.d(
+                Tag,
+                "OAuth token refresh needed: access=${current.accessToken.isNotBlank()}, refresh=${current.refreshToken.isNotBlank()}, expiresIn=${current.expiresIn}, lastRefresh=${current.lastRefreshTimeSeconds}",
+            )
             when (val result = refreshOAuthToken(current)) {
                 is RefreshResult.Success -> {
                     saveSession(result.session)
@@ -346,10 +355,14 @@ class AccountRepository(
                     result.session
                 }
                 RefreshResult.InvalidRefreshToken -> {
+                    Log.w(Tag, "OAuth refresh token invalid, clearing saved session")
                     logout(clearSavedPassword = false)
                     null
                 }
-                RefreshResult.Failed -> null
+                RefreshResult.Failed -> {
+                    Log.w(Tag, "OAuth refresh failed, keeping saved session for retry")
+                    null
+                }
             }
         }
     }
@@ -369,7 +382,8 @@ class AccountRepository(
             val oauth = parseOAuthToken(body)
             if (oauth == null) {
                 val errorCode = parseOAuthErrorCode(body)
-                Log.w(Tag, "OAuth refresh parse failed: status=${response.status.value}, error=$errorCode, body=${sanitizeOAuthBody(body)}")
+                val errorDescription = parseOAuthErrorDescription(body)
+                Log.w(Tag, "OAuth refresh parse failed: status=${response.status.value}, error=$errorCode, desc=$errorDescription, body=${sanitizeOAuthBody(body)}")
                 if (errorCode == OAuthErrorInvalidToken || errorCode == OAuthErrorInvalidRefreshToken) {
                     RefreshResult.InvalidRefreshToken
                 } else {
@@ -396,11 +410,13 @@ class AccountRepository(
         val body = JSONObject(stripXiaomiPrefix(raw))
         val accessToken = body.optString("access_token")
         if (accessToken.isBlank()) return null
+        val expiresIn = body.optLong("expires_in", 0)
+        if (expiresIn <= 0) return null
         return OAuthToken(
             accessToken = accessToken,
             refreshToken = body.optString("refresh_token"),
             openId = body.optString("openId"),
-            expiresIn = body.optLong("expires_in", 0),
+            expiresIn = expiresIn,
         )
     }
 
@@ -411,6 +427,10 @@ class AccountRepository(
 
     private fun parseOAuthErrorCode(raw: String): Int {
         return runCatching { JSONObject(stripXiaomiPrefix(raw)).optInt("error", 0) }.getOrDefault(0)
+    }
+
+    private fun parseOAuthErrorDescription(raw: String): String {
+        return runCatching { JSONObject(stripXiaomiPrefix(raw)).optString("error_description") }.getOrDefault("")
     }
 
     private fun JSONObject.firstNonBlank(vararg names: String): String {
